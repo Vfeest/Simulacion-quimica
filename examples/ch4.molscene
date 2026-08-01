@@ -1,0 +1,12 @@
+molecule CH4
+
+atom C: C
+atom H1: H
+atom H2: H
+atom H3: H
+atom H4: H
+
+bond C-H1: single
+bond C-H2: single
+bond C-H3: single
+bond C-H4: single

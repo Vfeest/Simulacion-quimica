@@ -1,0 +1,6 @@
+molecule H2
+
+atom A: H
+atom B: H
+
+bond A-B: single

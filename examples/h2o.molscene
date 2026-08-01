@@ -1,0 +1,8 @@
+molecule H2O
+
+atom O: O
+atom H1: H
+atom H2: H
+
+bond O-H1: single
+bond O-H2: single

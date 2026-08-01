@@ -1,0 +1,87 @@
+import { createViewer } from '../src/molscene/viewer.js';
+
+const stage = document.getElementById('stageFrame');
+const errBox = document.getElementById('errBox');
+const source = document.getElementById('source');
+const molName = document.getElementById('molName');
+const legendEl = document.getElementById('legend');
+const exampleSelect = document.getElementById('exampleSelect');
+
+const viewer = createViewer(stage);
+
+function renderLegend(entries){
+  legendEl.innerHTML = '';
+  entries.forEach(function(e){
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.innerHTML =
+      '<span class="swatch" style="background:' + e.color + '; box-shadow:0 0 8px 1px ' + e.color + ';"></span>' +
+      '<span class="legend-label">' + e.label + '</span>' +
+      '<span class="legend-count">' + e.count + ' e⁻</span>';
+    legendEl.appendChild(row);
+  });
+}
+
+function run(){
+  const text = source.value;
+  const resolved = viewer.load(text);
+  if (resolved.errors.length){
+    errBox.style.display = 'block';
+    errBox.textContent = resolved.errors.join('\n');
+    legendEl.innerHTML = '';
+    return;
+  }
+  errBox.style.display = 'none';
+  molName.textContent = resolved.name || 'Editor en vivo';
+  renderLegend(viewer.getLegend());
+  if (resolved.warnings && resolved.warnings.length){
+    console.warn('molscene:', resolved.warnings.join(' | '));
+  }
+}
+
+document.getElementById('runBtn').addEventListener('click', run);
+
+const modeCloudBtn = document.getElementById('modeCloudBtn');
+const modeAtmoBtn = document.getElementById('modeAtmoBtn');
+function setMode(m){
+  viewer.setMode(m);
+  modeCloudBtn.classList.toggle('active', m === 'cloud');
+  modeAtmoBtn.classList.toggle('active', m === 'atmosphere');
+}
+modeCloudBtn.addEventListener('click', function(){ setMode('cloud'); });
+modeAtmoBtn.addEventListener('click', function(){ setMode('atmosphere'); });
+setMode('cloud');
+
+const playBtn = document.getElementById('playBtn');
+let playing = true;
+playBtn.addEventListener('click', function(){
+  playing = !playing;
+  viewer.setPlaying(playing);
+  playBtn.textContent = playing ? 'Pausar' : 'Reproducir';
+});
+
+document.getElementById('resetBtn').addEventListener('click', function(){ viewer.resetCamera(); });
+
+const speedSlider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+speedSlider.addEventListener('input', function(){
+  const f = parseFloat(speedSlider.value);
+  viewer.setSpeed(f);
+  speedVal.textContent = f.toFixed(1) + '×';
+});
+
+const loneToggle = document.getElementById('loneToggle');
+loneToggle.addEventListener('change', function(){
+  ['lone', 'ionicLone'].forEach(function(role){ viewer.setRoleHidden(role, !loneToggle.checked); });
+});
+
+exampleSelect.addEventListener('change', loadExample);
+
+async function loadExample(){
+  const name = exampleSelect.value;
+  const res = await fetch('../examples/' + name + '.molscene');
+  source.value = await res.text();
+  run();
+}
+
+loadExample();

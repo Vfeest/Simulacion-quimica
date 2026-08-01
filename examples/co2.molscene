@@ -1,0 +1,8 @@
+molecule CO2
+
+atom C: C
+atom O1: O
+atom O2: O
+
+bond C-O1: double
+bond C-O2: double

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>molscene — motor de visualización molecular</title>
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{ "imports": { "three": "../vendor/three/three.module.js" } }
+</script>
+</head>
+<body>
+<div class="app">
+  <div class="stage">
+    <div class="stage-frame" id="stageFrame">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="hud hint">arrastra · rotar — scroll · zoom</div>
+      <div class="hud err" id="errBox" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div>
+      <div class="eyebrow">molscene — motor de visualización molecular</div>
+      <h1 id="molName">Editor en vivo</h1>
+    </div>
+
+    <section>
+      <div class="section-title">Ejemplo</div>
+      <select id="exampleSelect">
+        <option value="h2">H₂ — enlace simple</option>
+        <option value="n2">N₂ — triple enlace (σ + 2π)</option>
+        <option value="h2o">H₂O — sp3, 2 pares libres</option>
+        <option value="nh3">NH₃ — sp3, 1 par libre</option>
+        <option value="ch4">CH₄ — sp3, sin pares libres</option>
+        <option value="co2">CO₂ — sp lineal, doble enlace ×2</option>
+        <option value="hcl">HCl — covalente polar</option>
+        <option value="nacl">NaCl — enlace iónico</option>
+        <option value="water-dimer">2×H₂O — puente de hidrógeno</option>
+      </select>
+    </section>
+
+    <section>
+      <div class="section-title">Código molscene</div>
+      <textarea id="source" spellcheck="false"></textarea>
+      <div class="btn-row">
+        <button class="action" id="runBtn" type="button">Renderizar</button>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Modo de visualización</div>
+      <div class="mode-row">
+        <button class="mode-btn" id="modeCloudBtn" type="button">Nube</button>
+        <button class="mode-btn" id="modeAtmoBtn" type="button">Atmósfera</button>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Leyenda</div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section>
+      <div class="section-title">Controles</div>
+      <div class="btn-row">
+        <button class="action" id="playBtn" type="button">Pausar</button>
+        <button class="action" id="resetBtn" type="button">Reiniciar cámara</button>
+      </div>
+      <div class="control-row">
+        <div class="row-head"><label for="speedSlider">Velocidad caótica</label><span class="val" id="speedVal">1.0×</span></div>
+        <input id="speedSlider" type="range" min="0.2" max="2" step="0.1" value="1">
+      </div>
+      <div class="check-row">
+        <input id="loneToggle" type="checkbox" checked>
+        <span>Mostrar pares libres / electrones transferidos</span>
+      </div>
+    </section>
+
+    <p class="footnote">
+      Lenguaje declarativo: describís átomos, enlaces y cargas; el motor infiere hibridación
+      (sp/sp2/sp3…), pares libres y geometría 3D automáticamente (VSEPR simplificado).
+      Especificación completa en <a href="../docs/molscene-spec.md">docs/molscene-spec.md</a>.
+      No incluye orbitales d/f de metales de transición ni enlace metálico (ver "Roadmap" en la spec).
+    </p>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

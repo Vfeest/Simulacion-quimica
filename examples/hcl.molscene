@@ -1,0 +1,6 @@
+molecule HCl
+
+atom H: H
+atom Cl: Cl
+
+bond H-Cl: single

@@ -1,0 +1,6 @@
+molecule NaCl
+
+atom Na: Na charge 1
+atom Cl: Cl charge -1
+
+bond Na-Cl: ionic
