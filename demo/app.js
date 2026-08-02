@@ -6,6 +6,10 @@ const source = document.getElementById('source');
 const molName = document.getElementById('molName');
 const legendEl = document.getElementById('legend');
 const exampleSelect = document.getElementById('exampleSelect');
+const reactionSection = document.getElementById('reactionSection');
+const playReactionBtn = document.getElementById('playReactionBtn');
+const reactionSlider = document.getElementById('reactionSlider');
+const reactionVal = document.getElementById('reactionVal');
 
 const viewer = createViewer(stage);
 
@@ -37,6 +41,10 @@ function run(){
   if (resolved.warnings && resolved.warnings.length){
     console.warn('molscene:', resolved.warnings.join(' | '));
   }
+
+  const isReaction = viewer.isReaction();
+  reactionSection.style.display = isReaction ? 'flex' : 'none';
+  if (isReaction){ reactionSlider.value = '0'; reactionVal.textContent = 'reactivos'; }
 }
 
 document.getElementById('runBtn').addEventListener('click', run);
@@ -74,6 +82,28 @@ const loneToggle = document.getElementById('loneToggle');
 loneToggle.addEventListener('change', function(){
   ['lone', 'ionicLone'].forEach(function(role){ viewer.setRoleHidden(role, !loneToggle.checked); });
 });
+
+function reactionLabel(t){
+  if (t <= 0) return 'reactivos';
+  if (t >= 1) return 'productos';
+  return t < 0.5 ? 'acercándose…' : 'productos';
+}
+
+playReactionBtn.addEventListener('click', function(){ viewer.playReaction(); });
+reactionSlider.addEventListener('input', function(){
+  const t = parseFloat(reactionSlider.value);
+  viewer.setReactionProgress(t);
+  reactionVal.textContent = reactionLabel(t);
+  renderLegend(viewer.getLegend());
+});
+
+setInterval(function(){
+  if (!viewer.isReaction()) return;
+  const t = viewer.getReactionProgress();
+  reactionSlider.value = String(t);
+  reactionVal.textContent = reactionLabel(t);
+  renderLegend(viewer.getLegend());
+}, 150);
 
 exampleSelect.addEventListener('change', loadExample);
 

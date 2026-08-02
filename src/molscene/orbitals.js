@@ -86,14 +86,13 @@ export function makeLabelSprite(text, color){
   return sp;
 }
 
-export function participantShellMeshes(participant, nucleus, colorHex, scene){
+export function participantShellMeshes(participant, nucleus, colorHex){
   const meshes = [];
   const mat = function(){ return new THREE.MeshPhysicalMaterial({ color: colorHex, transparent: true, opacity: 0.15, roughness: 0.3, metalness: 0, side: THREE.DoubleSide, depthWrite: false }); };
 
   if (isSpherical(participant.sFrac)){
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(participant.radius || SPHERE_RADIUS, 22, 22), mat());
     mesh.position.copy(nucleus);
-    scene.add(mesh);
     return [mesh];
   }
 
@@ -107,7 +106,6 @@ export function participantShellMeshes(participant, nucleus, colorHex, scene){
     mesh.position.copy(nucleus).add(participant.axis.clone().multiplyScalar(lobe.offset));
     mesh.quaternion.copy(quat);
     mesh.scale.set(lobe.wide, lobe.wide, lobe.long);
-    scene.add(mesh);
     meshes.push(mesh);
   });
   return meshes;

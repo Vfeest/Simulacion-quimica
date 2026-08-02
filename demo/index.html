@@ -39,6 +39,7 @@
         <option value="nacl">NaCl — enlace iónico</option>
         <option value="metal-cluster">4×Na — enlace metálico (mar de e⁻)</option>
         <option value="water-dimer">2×H₂O — puente de hidrógeno</option>
+        <option value="h2-cl2-reaction">H₂ + Cl₂ → 2 HCl — reacción animada</option>
       </select>
     </section>
 
@@ -47,6 +48,17 @@
       <textarea id="source" spellcheck="false"></textarea>
       <div class="btn-row">
         <button class="action" id="runBtn" type="button">Renderizar</button>
+      </div>
+    </section>
+
+    <section id="reactionSection" style="display:none;">
+      <div class="section-title">Reacción</div>
+      <div class="btn-row">
+        <button class="action" id="playReactionBtn" type="button">▶ Reproducir reacción</button>
+      </div>
+      <div class="control-row">
+        <div class="row-head"><label for="reactionSlider">Avance</label><span class="val" id="reactionVal">reactivos</span></div>
+        <input id="reactionSlider" type="range" min="0" max="1" step="0.01" value="0">
       </div>
     </section>
 
@@ -83,7 +95,7 @@
       Lenguaje declarativo: describís átomos, enlaces y cargas; el motor infiere hibridación
       (sp/sp2/sp3…), pares libres y geometría 3D automáticamente (VSEPR simplificado).
       Especificación completa en <a href="../docs/molscene-spec.md">docs/molscene-spec.md</a>.
-      No incluye orbitales d/f de metales de transición ni enlace metálico (ver "Roadmap" en la spec).
+      No incluye orbitales d/f de metales de transición ni teoría de bandas (ver "Roadmap" en la spec).
     </p>
   </div>
 </div>

@@ -83,3 +83,22 @@ export function perpFrame(axisLine){
   const p2 = normalize(cross(axisLine, p1));
   return [p1, p2];
 }
+
+// Connected components of a graph given as a Map(node -> [neighbor, ...]).
+// Every node passed in `nodes` gets a component, even with no edges (a
+// singleton). Shared by metallic.js (which atoms share an electron sea)
+// and clusters.js (which atoms belong to the same rigid molecule).
+export function connectedComponents(nodes, adjacency){
+  const seen = new Set();
+  const components = [];
+  nodes.forEach(function(id){
+    if (seen.has(id)) return;
+    const comp = []; const queue = [id]; seen.add(id);
+    while (queue.length){
+      const cur = queue.shift(); comp.push(cur);
+      (adjacency.get(cur) || []).forEach(function(n){ if (!seen.has(n)){ seen.add(n); queue.push(n); } });
+    }
+    components.push(comp);
+  });
+  return components;
+}

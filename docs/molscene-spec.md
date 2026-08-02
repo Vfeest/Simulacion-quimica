@@ -178,6 +178,70 @@ Ambos modos comparten el mismo color por **rol** de grupo de electrones
 (σ, π, π secundario, par libre, radical, transferido), no por molécula —
 así el color siempre significa lo mismo sin importar qué se esté mirando.
 
+## Reacciones (animación de unión)
+
+Una reacción describe **antes y después** — dos moléculas completas que
+comparten los mismos `id` de átomo — y el motor anima la transición:
+
+```molscene
+reaction H2 + Cl2 → 2 HCl
+
+reactants
+  atom A: H
+  atom B: H
+  bond A-B: single
+
+  atom C: Cl
+  atom D: Cl
+  bond C-D: single
+end
+
+products
+  atom A: H
+  atom C: Cl
+  bond A-C: single
+
+  atom B: H
+  atom D: Cl
+  bond B-D: single
+end
+```
+
+Cada bloque (`reactants`, `products`) es una molécula molscene normal —
+misma gramática, misma inferencia de hibridación/pares libres/geometría
+que una molécula suelta — solo que los **mismos `id`** (`A`, `B`, `C`,
+`D`) tienen que aparecer en los dos bloques para que el motor sepa qué
+átomo del "antes" es cuál átomo del "después". La topología de enlaces
+puede cambiar libremente entre bloques (acá `A-B` y `C-D` se rompen, y
+`A-C`/`B-D` se forman) — de eso se trata.
+
+La animación tiene dos tiempos, controlados por un progreso `t` de 0 a 1:
+
+1. **Acercamiento** (`t` 0 → 0.5): cada molécula original de `reactants`
+   (detectada automáticamente por su conectividad) viaja como **cuerpo
+   rígido** — su geometría interna no cambia, solo se traslada — desde su
+   posición inicial hacia el punto donde ocurre la reacción.
+2. **Unión** (`t` = 0.5): un destello marca el instante, y la escena
+   cambia a la estructura ya resuelta de `products`, con sus propios
+   orbitales y electrones (incluyendo los que ya no se comparten, como
+   los pares libres que le "sobran" a un átomo tras romperse un enlace).
+
+No es una simulación continua de ruptura/formación de enlaces (los
+orbitales no se deforman en el tiempo) — es una aproximación rígida
+seguida de un corte limpio, pensada para que el momento de la unión se
+lea con claridad más que para ser cuantitativamente exacta.
+
+Uso programático (ver `viewer.load` en la sección siguiente):
+
+```js
+const resolved = viewer.load(reactionText);
+if (resolved.kind === 'reaction') {
+  viewer.playReaction();               // reproduce una vez, 0 -> 1
+  viewer.setReactionProgress(0.3);     // o controlalo a mano (pausa el auto-play)
+  viewer.getReactionProgress();        // 0..1, para sincronizar tu propia UI
+}
+```
+
 ## Limitaciones (roadmap)
 
 Alcance actual: química general y orgánica de bloque principal (s/p),
@@ -196,9 +260,12 @@ Deliberadamente fuera de esta versión:
   cúmulo", no un modelo de estructura de bandas.
 - Sistemas aromáticos deslocalizados (un anillo bencénico hoy se describe
   como enlaces alternados simples/dobles, no como una nube deslocalizada).
-- Animaciones de reacciones (transición entre dos estructuras en el
-  tiempo) — el DSL está pensado para poder agregar esto después (p. ej. un
-  bloque `reaction { step ... }`), pero no existe todavía.
+- Reacciones de más de un paso (mecanismos con intermediarios) — hoy una
+  `reaction` es siempre antes/después de 2 puntos, no una secuencia.
+- Ruptura/formación de enlaces animada de forma continua durante el
+  acercamiento — ver "Reacciones" más arriba, es una aproximación rígida
+  con un corte limpio en el instante de la unión, no una deformación
+  gradual de los orbitales.
 
 ## Uso programático
 
@@ -206,7 +273,7 @@ Deliberadamente fuera de esta versión:
 import { createViewer } from './src/molscene/viewer.js';
 
 const viewer = createViewer(document.getElementById('canvas-container'));
-const result = viewer.load(molsceneText); // { errors, warnings, name }
+const result = viewer.load(molsceneText); // { kind: 'molecule'|'reaction', errors, warnings, name }
 if (result.errors.length) {
   // mostrar result.errors (strings listos para el usuario) en vez de tirar
 }
@@ -216,6 +283,12 @@ viewer.setSpeed(1.2);
 viewer.setRoleHidden('lone', true);
 viewer.resetCamera();
 viewer.getLegend(); // [{ role, label, color, count }] — para pintar la leyenda
+
+if (viewer.isReaction()) {
+  viewer.playReaction();
+  viewer.setReactionProgress(0.5);
+  viewer.getReactionProgress(); // 0..1
+}
 ```
 
 Ver `demo/` para un reproductor completo (editor + selector de ejemplos +

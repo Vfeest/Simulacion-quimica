@@ -12,22 +12,7 @@
 // whichever atom they started next to instead of actually roaming.
 
 import { ROLE_COLORS } from './roles.js';
-import { sub, length } from './geometry.js';
-
-function connectedComponents(adjacency){
-  const seen = new Set();
-  const components = [];
-  adjacency.forEach(function(_, id){
-    if (seen.has(id)) return;
-    const comp = []; const queue = [id]; seen.add(id);
-    while (queue.length){
-      const cur = queue.shift(); comp.push(cur);
-      (adjacency.get(cur) || []).forEach(function(n){ if (!seen.has(n)){ seen.add(n); queue.push(n); } });
-    }
-    components.push(comp);
-  });
-  return components;
-}
+import { sub, length, connectedComponents } from './geometry.js';
 
 export function buildMetallicGroups(model, chem, positions){
   const edges = model.bonds.filter(function(b){ return b.order === 'metallic' && chem.atoms.has(b.a) && chem.atoms.has(b.b); });
@@ -43,7 +28,7 @@ export function buildMetallicGroups(model, chem, positions){
 
   const connectors = edges.map(function(b){ return { a: b.a, b: b.b, kind: 'metallic' }; });
 
-  const groups = connectedComponents(adjacency).map(function(atomIds, idx){
+  const groups = connectedComponents(Array.from(adjacency.keys()), adjacency).map(function(atomIds, idx){
     let minSpacing = Infinity;
     edges.forEach(function(b){
       if (atomIds.indexOf(b.a) === -1 || atomIds.indexOf(b.b) === -1) return;

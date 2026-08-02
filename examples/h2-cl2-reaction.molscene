@@ -1,0 +1,21 @@
+reaction H2 + Cl2 → 2 HCl
+
+reactants
+  atom A: H
+  atom B: H
+  bond A-B: single
+
+  atom C: Cl
+  atom D: Cl
+  bond C-D: single
+end
+
+products
+  atom A: H
+  atom C: Cl
+  bond A-C: single
+
+  atom B: H
+  atom D: Cl
+  bond B-D: single
+end

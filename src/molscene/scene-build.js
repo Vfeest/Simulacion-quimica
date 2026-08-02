@@ -9,7 +9,7 @@ import { groupDensity, groupInside, makeLabelSprite, rejectionCloud, participant
 
 export const CLOUD_N = 900, MAX_TRAIL = 16;
 
-export function buildAtomsAndConnectors(scene, resolved, track, dotTexture){
+export function buildAtomsAndConnectors(resolved, track, dotTexture){
   const positions = new Map(resolved.atoms.map(function(a){ return [a.id, new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z)]; }));
   const nucleusOf = function(id){ return positions.get(id); };
 
@@ -46,7 +46,7 @@ export function buildAtomsAndConnectors(scene, resolved, track, dotTexture){
   return nucleusOf;
 }
 
-export function buildGroups(scene, resolved, nucleusOf, track, dotTexture){
+export function buildGroups(resolved, nucleusOf, track, dotTexture){
   return resolved.groups.map(function(g){
     const col = new THREE.Color(g.color);
     const participants = g.participants.map(function(p){
@@ -69,7 +69,7 @@ export function buildGroups(scene, resolved, nucleusOf, track, dotTexture){
     const cloudPoints = track(new THREE.Points(cloudGeo, cloudMat));
 
     const shellMeshes = [];
-    participants.forEach(function(p){ shellMeshes.push.apply(shellMeshes, participantShellMeshes(p, nucleusOf(p.atomId), g.color, scene).map(track)); });
+    participants.forEach(function(p){ shellMeshes.push.apply(shellMeshes, participantShellMeshes(p, nucleusOf(p.atomId), g.color).map(track)); });
 
     const electrons = [];
     for (let i = 0; i < g.count; i++){

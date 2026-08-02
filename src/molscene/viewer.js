@@ -1,9 +1,10 @@
 // Public entry point of the engine: takes molscene text and a DOM element,
 // renders the 3D scene into it, and returns a small controller for the
 // host page to drive (mode, play/pause, speed, which electron groups are
-// visible) and to read a legend from. The host page owns its own UI chrome
-// (buttons, panel layout) - this module only owns the canvas, and delegates
-// to camera-controls.js / scene-build.js / electron-motion.js for anything
+// visible, and - for a reaction - playback of the approach/bonding
+// animation) and to read a legend from. The host page owns its own UI
+// chrome; this module delegates to camera-controls.js / scene-build.js /
+// electron-motion.js / reaction-scene.js / reaction-motion.js for anything
 // beyond top-level wiring.
 
 import * as THREE from 'three';
@@ -13,6 +14,10 @@ import { makeDotTexture } from './orbitals.js';
 import { buildAtomsAndConnectors, buildGroups } from './scene-build.js';
 import { stepElectrons, applyVisibility } from './electron-motion.js';
 import { createOrbitCamera } from './camera-controls.js';
+import { buildClusterRigs, buildProductRig, centroidOf } from './reaction-scene.js';
+import { updateReactionRig, activeReactionGroups } from './reaction-motion.js';
+
+const REACTION_DURATION_S = 6;
 
 export function createViewer(container){
   const scene = new THREE.Scene();
@@ -30,7 +35,8 @@ export function createViewer(container){
   const orbitCamera = createOrbitCamera(camera, renderer.domElement);
 
   let sceneObjects = [];
-  let groups = [];
+  let staticGroups = [];
+  let reaction = null;
   let mode = 'cloud';
   let playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let speedFactor = 1;
@@ -41,17 +47,37 @@ export function createViewer(container){
     sceneObjects = [];
   }
   function track(o){ scene.add(o); sceneObjects.push(o); return o; }
+  function currentGroups(){ return reaction ? activeReactionGroups(reaction, reaction.t) : staticGroups; }
+  function refreshVisibility(){ applyVisibility(currentGroups(), mode, hiddenRoles); }
+
+  function makeFlash(){
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTexture, color: 0xfff2d8, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+    sprite.scale.set(1.4, 1.4, 1);
+    return track(sprite);
+  }
 
   function load(text){
     clearScene();
     const resolved = resolveMolscene(text);
-    if (resolved.errors.length){ groups = []; return resolved; }
+    if (resolved.errors.length){ staticGroups = []; reaction = null; return resolved; }
 
-    const nucleusOf = buildAtomsAndConnectors(scene, resolved, track, dotTexture);
-    groups = buildGroups(scene, resolved, nucleusOf, track, dotTexture);
-
-    orbitCamera.fitTo(resolved.atoms.map(function(a){ return a.pos; }), resolved.view);
-    applyVisibility(groups, mode, hiddenRoles);
+    if (resolved.kind === 'reaction'){
+      const convergence = centroidOf(resolved.reactants.atoms);
+      const clusterRigs = buildClusterRigs(resolved.reactants, track, dotTexture);
+      const productRig = buildProductRig(resolved.products, track, dotTexture, convergence);
+      const flash = makeFlash();
+      flash.position.copy(convergence);
+      reaction = { clusterRigs, productRig, convergence, flash, t: 0, playing: false };
+      staticGroups = [];
+      updateReactionRig(reaction, 0);
+      orbitCamera.fitTo(resolved.reactants.atoms.map(function(a){ return a.pos; }), resolved.reactants.view || resolved.products.view);
+    } else {
+      reaction = null;
+      const nucleusOf = buildAtomsAndConnectors(resolved, track, dotTexture);
+      staticGroups = buildGroups(resolved, nucleusOf, track, dotTexture);
+      orbitCamera.fitTo(resolved.atoms.map(function(a){ return a.pos; }), resolved.view);
+    }
+    refreshVisibility();
     return resolved;
   }
 
@@ -65,24 +91,41 @@ export function createViewer(container){
   new ResizeObserver(resize).observe(container);
   resize();
 
+  let lastTime = performance.now();
   function tick(){
     requestAnimationFrame(tick);
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
     orbitCamera.update();
-    if (playing) stepElectrons(groups, mode, speedFactor, hiddenRoles);
+
+    if (reaction && reaction.playing){
+      reaction.t = Math.min(1, reaction.t + dt / REACTION_DURATION_S);
+      if (reaction.t >= 1) reaction.playing = false;
+      updateReactionRig(reaction, reaction.t);
+      refreshVisibility();
+    }
+    if (playing) stepElectrons(currentGroups(), mode, speedFactor, hiddenRoles);
+
     renderer.render(scene, camera);
   }
   tick();
 
   return {
     load,
-    setMode: function(m){ mode = m; applyVisibility(groups, mode, hiddenRoles); },
+    setMode: function(m){ mode = m; refreshVisibility(); },
     setPlaying: function(p){ playing = p; },
     setSpeed: function(f){ speedFactor = f; },
-    setRoleHidden: function(role, hidden){ if (hidden) hiddenRoles.add(role); else hiddenRoles.delete(role); applyVisibility(groups, mode, hiddenRoles); },
+    setRoleHidden: function(role, hidden){ if (hidden) hiddenRoles.add(role); else hiddenRoles.delete(role); refreshVisibility(); },
     resetCamera: function(){ orbitCamera.reset(); },
+    isReaction: function(){ return !!reaction; },
+    playReaction: function(){ if (!reaction) return; reaction.t = 0; reaction.playing = true; updateReactionRig(reaction, 0); refreshVisibility(); },
+    setReactionProgress: function(t){ if (!reaction) return; reaction.playing = false; reaction.t = Math.min(1, Math.max(0, t)); updateReactionRig(reaction, reaction.t); refreshVisibility(); },
+    getReactionProgress: function(){ return reaction ? reaction.t : 0; },
     getLegend: function(){
       const seen = new Map();
-      groups.forEach(function(g){
+      currentGroups().forEach(function(g){
         if (!seen.has(g.role)) seen.set(g.role, { role: g.role, label: ROLE_LABELS[g.role] || g.role, color: '#' + g.color.getHexString(), count: 0 });
         seen.get(g.role).count += g.electrons.length;
       });

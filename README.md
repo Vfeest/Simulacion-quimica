@@ -9,9 +9,11 @@ que una IA pueda generarlos igual que genera un diagrama Mermaid.
 - **`src/molscene/`** — el motor: parser → inferencia química (VSEPR /
   enlace de valencia simplificado) → geometría 3D → renderizado (Three.js).
 - **`examples/*.molscene`** — moléculas de ejemplo (H₂, N₂, H₂O, NH₃, CH₄,
-  CO₂, HCl, NaCl, puente de hidrógeno).
+  CO₂, HCl, NaCl, cúmulo metálico, puente de hidrógeno, y una reacción
+  animada H₂ + Cl₂ → 2 HCl).
 - **`demo/`** — reproductor interactivo: editor de texto, selector de
-  ejemplos, modo nube de probabilidad / modo atmósfera, controles.
+  ejemplos, modo nube de probabilidad / modo atmósfera, reproducción de
+  reacciones, controles.
 
 ## Probar el demo
 
@@ -31,7 +33,9 @@ y abrir `demo/index.html` (por ejemplo `http://localhost:3000/demo/`).
 Cubre bien química general y orgánica de bloque principal: orbitales s/p,
 hibridación sp/sp2/sp3/sp3d/sp3d2 inferida automáticamente, enlaces
 covalentes simples/dobles/triples, iónicos, metálicos (mar de electrones
-simplificado) y puente de hidrógeno, pares libres y radicales. No incluye
+simplificado) y puente de hidrógeno, pares libres y radicales, y
+animación de reacciones (dos moléculas — antes/después — con acercamiento
+rígido y un corte limpio en el instante de la unión). No incluye
 orbitales d/f reales de metales de transición, teoría de bandas, ni
 sistemas aromáticos deslocalizados — detalle completo en la sección
 "Limitaciones" de la spec.
@@ -46,17 +50,20 @@ alcance para entenderlo, sin tener que cargar el resto del motor:
 | `elements.js` | Datos por elemento (valencia, radio covalente, color). |
 | `parser.js` | Texto molscene → AST (átomos, enlaces, vista). |
 | `chemistry.js` | Electrones de valencia → pares libres / radicales / hibridación por átomo. |
-| `geometry.js` | Vectores + el solver de repulsión (VSEPR) que usan `layout.js` y `lone-pairs.js`. |
+| `geometry.js` | Vectores + el solver de repulsión (VSEPR) + componentes conexas. |
 | `layout.js` | Posiciones 3D automáticas cuando falta `at (...)`. |
 | `bonds.js` | Enlaces covalentes → grupos σ/π. |
 | `lone-pairs.js` | Pares libres / radicales → grupos. |
 | `metallic.js` | Cúmulos de enlace metálico → grupo de "mar de electrones". |
+| `clusters.js` | Qué átomos forman una misma molécula rígida (para animar reacciones). |
 | `roles.js` | Color y etiqueta de cada rol de grupo (única fuente de verdad). |
-| `resolve.js` | Orquesta todo lo anterior → el modelo de escena resuelto. |
+| `resolve.js` | Orquesta todo lo anterior → el modelo de escena resuelto (molécula o reacción). |
 | `orbitals.js` | Matemática de orbitales (s/p/híbrido) y su malla 3D — no sabe nada de molscene. |
 | `scene-build.js` | Modelo resuelto → objetos Three.js (núcleos, nubes, esferas). |
 | `camera-controls.js` | Cámara orbital (arrastre, zoom, encuadre automático). |
 | `electron-motion.js` | Simulación por cuadro + visibilidad por modo/rol. |
+| `reaction-scene.js` | Construye los cuerpos rígidos de "reactants" y el producto de "products". |
+| `reaction-motion.js` | Anima el acercamiento y el corte al instante de la unión. |
 | `viewer.js` | Punto de entrada público: conecta todo lo anterior. |
 
 ## Vendored
