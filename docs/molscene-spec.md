@@ -46,13 +46,24 @@ ignoran. Las palabras clave no distinguen mayúsculas/minúsculas.
 ```
 molecule <nombre libre>
 
+describe
+<texto libre, una o más líneas>
+end
+
 atom <id>: <Elemento> [charge <±entero>] [lonepairs <entero>] [at (x, y, z)]
 
-bond <id>-<id>: <single|double|triple|ionic|hydrogen>
+bond <id>-<id>: <single|double|triple|ionic|hydrogen|metallic>
 
 view [azimuth <rad>] [polar <rad>] [radius <unidades>]
 ```
 
+- **`describe ... end`**: texto libre — la explicación que la IA que
+  generó la molécula quiere mostrar junto a la escena (qué es, por qué
+  importa, qué mirar). Se muestra tal cual, sin interpretar como código;
+  no afecta la química ni la geometría. Opcional, y puede ir en cualquier
+  parte del documento (dentro de `reactants`/`products` de una reacción
+  también vale, pero ahí describe esa molécula puntual — para describir la
+  reacción completa, poné el bloque a nivel superior, junto a `reaction`).
 - **`<id>`**: identificador corto (`\w+`), arbitrario, solo se usa para
   referenciar el átomo en `bond`.
 - **`<Elemento>`**: símbolo químico soportado (ver `src/molscene/elements.js`
@@ -173,10 +184,18 @@ química) de **cómo se dibuja** (elegido por quien mira):
   esfera opaca que se mueve al azar *confinada* dentro de su envolvente
   (sin peso probabilístico). Pensado para ser más fácil de leer de un
   vistazo.
+- **Bola-palito**: el modelo clásico de libro de texto — núcleos más
+  grandes, un cilindro sólido por enlace (dos o tres cilindros paralelos
+  para dobles/triples), sin nubes ni electrones. No usa `sFrac` ni la
+  malla de orbitales para nada; solo lee `atoms` y `bonds`. Sirve para leer
+  conectividad y geometría de un vistazo, sobre todo en moléculas grandes
+  donde las nubes/atmósferas se superponen demasiado.
 
-Ambos modos comparten el mismo color por **rol** de grupo de electrones
-(σ, π, π secundario, par libre, radical, transferido), no por molécula —
-así el color siempre significa lo mismo sin importar qué se esté mirando.
+Los tres modos comparten el mismo color por **rol** de grupo de electrones
+(σ, π, π secundario, par libre, radical, transferido) en Nube/Atmósfera,
+no por molécula — así el color siempre significa lo mismo sin importar
+qué se esté mirando. Bola-palito, al no mostrar electrones, colorea solo
+por elemento (igual que los núcleos en los otros dos modos).
 
 ## Reacciones (animación de unión)
 
@@ -276,11 +295,12 @@ Deliberadamente fuera de esta versión:
 import { createViewer } from './src/molscene/viewer.js';
 
 const viewer = createViewer(document.getElementById('canvas-container'));
-const result = viewer.load(molsceneText); // { kind: 'molecule'|'reaction', errors, warnings, name }
+const result = viewer.load(molsceneText); // { kind: 'molecule'|'reaction', errors, warnings, name, description }
 if (result.errors.length) {
   // mostrar result.errors (strings listos para el usuario) en vez de tirar
 }
-viewer.setMode('atmosphere');   // o 'cloud'
+// result.description: el texto de "describe ... end", o '' si no hay.
+viewer.setMode('atmosphere');   // 'cloud' | 'atmosphere' | 'ballstick'
 viewer.setPlaying(true);
 viewer.setSpeed(1.2);
 viewer.setRoleHidden('lone', true);

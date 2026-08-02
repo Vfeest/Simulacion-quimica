@@ -9,11 +9,12 @@ que una IA pueda generarlos igual que genera un diagrama Mermaid.
 - **`src/molscene/`** — el motor: parser → inferencia química (VSEPR /
   enlace de valencia simplificado) → geometría 3D → renderizado (Three.js).
 - **`examples/*.molscene`** — moléculas de ejemplo (H₂, N₂, H₂O, NH₃, CH₄,
-  CO₂, HCl, NaCl, cúmulo metálico, puente de hidrógeno, y una reacción
-  animada H₂ + Cl₂ → 2 HCl).
+  CO₂, HCl, NaCl, cúmulo metálico, puente de hidrógeno, glucosa con
+  descripción, y dos reacciones animadas: H₂ + Cl₂ → 2 HCl y
+  2 H₂ + O₂ → 2 H₂O).
 - **`demo/`** — reproductor interactivo: editor de texto, selector de
-  ejemplos, modo nube de probabilidad / modo atmósfera, reproducción de
-  reacciones, controles.
+  ejemplos, tres modos de visualización (nube de probabilidad / atmósfera /
+  bola-palito), reproducción de reacciones, controles.
 
 ## Probar el demo
 
@@ -52,7 +53,8 @@ alcance para entenderlo, sin tener que cargar el resto del motor:
 | `chemistry.js` | Electrones de valencia → pares libres / radicales / hibridación por átomo. |
 | `geometry.js` | Vectores + el solver de repulsión (VSEPR) + componentes conexas. |
 | `layout.js` | Posiciones 3D automáticas cuando falta `at (...)`. |
-| `bonds.js` | Enlaces covalentes → grupos σ/π. |
+| `bonds.js` | Enlaces covalentes → grupos σ/π (y la lista de enlaces con su orden, para bola-palito). |
+| `ball-stick.js` | Modo bola-palito: un cilindro por enlace, sin electrones ni orbitales. |
 | `lone-pairs.js` | Pares libres / radicales → grupos. |
 | `metallic.js` | Cúmulos de enlace metálico → grupo de "mar de electrones". |
 | `clusters.js` | Qué átomos forman una misma molécula rígida (para animar reacciones). |

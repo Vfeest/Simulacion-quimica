@@ -4,6 +4,7 @@ const stage = document.getElementById('stageFrame');
 const errBox = document.getElementById('errBox');
 const source = document.getElementById('source');
 const molName = document.getElementById('molName');
+const molDescription = document.getElementById('molDescription');
 const legendEl = document.getElementById('legend');
 const exampleSelect = document.getElementById('exampleSelect');
 const reactionSection = document.getElementById('reactionSection');
@@ -37,6 +38,12 @@ function run(){
   }
   errBox.style.display = 'none';
   molName.textContent = resolved.name || 'Editor en vivo';
+  if (resolved.description){
+    molDescription.textContent = resolved.description;
+    molDescription.style.display = 'block';
+  } else {
+    molDescription.style.display = 'none';
+  }
   renderLegend(viewer.getLegend());
   if (resolved.warnings && resolved.warnings.length){
     console.warn('molscene:', resolved.warnings.join(' | '));
@@ -51,13 +58,16 @@ document.getElementById('runBtn').addEventListener('click', run);
 
 const modeCloudBtn = document.getElementById('modeCloudBtn');
 const modeAtmoBtn = document.getElementById('modeAtmoBtn');
+const modeBallStickBtn = document.getElementById('modeBallStickBtn');
 function setMode(m){
   viewer.setMode(m);
   modeCloudBtn.classList.toggle('active', m === 'cloud');
   modeAtmoBtn.classList.toggle('active', m === 'atmosphere');
+  modeBallStickBtn.classList.toggle('active', m === 'ballstick');
 }
 modeCloudBtn.addEventListener('click', function(){ setMode('cloud'); });
 modeAtmoBtn.addEventListener('click', function(){ setMode('atmosphere'); });
+modeBallStickBtn.addEventListener('click', function(){ setMode('ballstick'); });
 setMode('cloud');
 
 const playBtn = document.getElementById('playBtn');

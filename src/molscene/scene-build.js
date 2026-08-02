@@ -12,6 +12,7 @@ export const CLOUD_N = 900, MAX_TRAIL = 16;
 export function buildAtomsAndConnectors(resolved, track, dotTexture){
   const positions = new Map(resolved.atoms.map(function(a){ return [a.id, new THREE.Vector3(a.pos.x, a.pos.y, a.pos.z)]; }));
   const nucleusOf = function(id){ return positions.get(id); };
+  const nucleiSpheres = [];
 
   resolved.atoms.forEach(function(a){
     const pos = nucleusOf(a.id);
@@ -20,6 +21,7 @@ export function buildAtomsAndConnectors(resolved, track, dotTexture){
       new THREE.MeshStandardMaterial({ color: a.color, emissive: a.color, emissiveIntensity: 0.32, roughness: 0.45, metalness: 0.1 })
     ));
     sphere.position.copy(pos);
+    nucleiSpheres.push(sphere);
     const glow = track(new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTexture, color: a.color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })));
     glow.position.copy(pos); glow.scale.set(0.5, 0.5, 1);
     const label = track(makeLabelSprite(a.id, '#e8ecf3'));
@@ -38,12 +40,12 @@ export function buildAtomsAndConnectors(resolved, track, dotTexture){
     line.computeLineDistances();
   });
 
-  resolved.groups.filter(function(g){ return g.role === 'sigma'; }).forEach(function(g){
+  const sigmaGuideLines = resolved.groups.filter(function(g){ return g.role === 'sigma'; }).map(function(g){
     const a = nucleusOf(g.participants[0].atomId), b = nucleusOf(g.participants[1].atomId);
-    track(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: 0x3a4a63, transparent: true, opacity: 0.25 })));
+    return track(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: 0x3a4a63, transparent: true, opacity: 0.25 })));
   });
 
-  return nucleusOf;
+  return { nucleusOf, nucleiSpheres, sigmaGuideLines };
 }
 
 export function buildGroups(resolved, nucleusOf, track, dotTexture){

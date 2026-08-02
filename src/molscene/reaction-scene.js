@@ -15,6 +15,7 @@
 
 import * as THREE from 'three';
 import { buildAtomsAndConnectors, buildGroups } from './scene-build.js';
+import { buildBallStick } from './ball-stick.js';
 import { computeClusters } from './clusters.js';
 
 function centroidOf(atoms){
@@ -31,7 +32,8 @@ function localize(resolved, ids, origin){
   });
   const groups = resolved.groups.filter(function(g){ return g.participants.every(function(p){ return idSet.has(p.atomId); }); });
   const connectors = resolved.connectors.filter(function(c){ return idSet.has(c.a) && idSet.has(c.b); });
-  return { atoms, groups, connectors };
+  const bonds = resolved.bonds.filter(function(b){ return idSet.has(b.a) && idSet.has(b.b); });
+  return { atoms, groups, connectors, bonds };
 }
 
 function buildRig(resolved, ids, origin, track, dotTexture){
@@ -40,16 +42,18 @@ function buildRig(resolved, ids, origin, track, dotTexture){
   track(group);
   const localTrack = function(o){ group.add(o); return o; };
   const local = localize(resolved, ids, origin);
-  const nucleusOf = buildAtomsAndConnectors(local, localTrack, dotTexture);
-  const groups = buildGroups(local, nucleusOf, localTrack, dotTexture);
-  return { group, groups };
+  const built = buildAtomsAndConnectors(local, localTrack, dotTexture);
+  const groups = buildGroups(local, built.nucleusOf, localTrack, dotTexture);
+  const stickMeshes = buildBallStick(local, built.nucleusOf, localTrack);
+  const decor = { nucleiSpheres: built.nucleiSpheres, sigmaGuideLines: built.sigmaGuideLines, stickMeshes };
+  return { group, groups, decor };
 }
 
 export function buildClusterRigs(resolved, track, dotTexture){
   return computeClusters(resolved).map(function(ids){
     const origin = centroidOf(resolved.atoms.filter(function(a){ return ids.indexOf(a.id) !== -1; }));
     const rig = buildRig(resolved, ids, origin, track, dotTexture);
-    return { group: rig.group, groups: rig.groups, start: origin.clone() };
+    return { group: rig.group, groups: rig.groups, decor: rig.decor, start: origin.clone() };
   });
 }
 

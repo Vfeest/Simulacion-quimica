@@ -9,6 +9,8 @@ const RE_MOLECULE = /^molecule\s+(.+)$/i;
 const RE_ATOM = /^atom\s+(\w+)\s*:\s*([A-Za-z]{1,2})\s*(.*)$/i;
 const RE_BOND = /^bond\s+(\w+)\s*-\s*(\w+)\s*:\s*(single|double|triple|ionic|hydrogen|metallic)\s*(.*)$/i;
 const RE_VIEW = /^view\s+(.*)$/i;
+const RE_DESCRIBE = /^describe\s*$/i;
+const RE_END = /^end\s*$/i;
 const RE_AT = /at\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/i;
 const RE_CHARGE = /charge\s+(-?\d+)/i;
 const RE_LONEPAIRS = /lonepairs\s+(\d+)/i;
@@ -26,17 +28,27 @@ function parseKeyValueTail(tail){
 
 export function parseMolscene(text){
   const errors = [];
-  const model = { name: 'molécula', atoms: [], bonds: [], view: null };
+  const model = { name: 'molécula', description: '', atoms: [], bonds: [], view: null };
   const atomIds = new Set();
+
+  let inDescribe = false;
+  let describeLines = [];
 
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++){
     const raw = lines[i];
     const line = raw.replace(/#.*$/, '').trim();
-    if (!line) continue;
     const lineNo = i + 1;
 
+    if (inDescribe){
+      if (RE_END.test(line)){ model.description = describeLines.join('\n').trim(); inDescribe = false; describeLines = []; }
+      else describeLines.push(raw);
+      continue;
+    }
+    if (!line) continue;
+
     let m;
+    if (RE_DESCRIBE.test(line)){ inDescribe = true; describeLines = []; continue; }
     if ((m = line.match(RE_MOLECULE))){
       model.name = m[1].trim();
       continue;
@@ -77,8 +89,9 @@ export function parseMolscene(text){
       continue;
     }
 
-    errors.push('Línea ' + lineNo + ': no reconocida: "' + raw.trim() + '". Se esperaba "molecule", "atom", "bond" o "view".');
+    errors.push('Línea ' + lineNo + ': no reconocida: "' + raw.trim() + '". Se esperaba "molecule", "atom", "bond", "view" o "describe".');
   }
+  if (inDescribe) errors.push('Falta "end" para cerrar el bloque "describe".');
 
   if (model.atoms.length === 0) errors.push('No se declaró ningún átomo (falta al menos una línea "atom ...").');
 
@@ -88,7 +101,6 @@ export function parseMolscene(text){
 const RE_REACTION = /^reaction\s+(.+)$/i;
 const RE_REACTANTS = /^reactants\s*$/i;
 const RE_PRODUCTS = /^products\s*$/i;
-const RE_END = /^end\s*$/i;
 
 // A reaction is molscene's before/after: two independent molecule bodies
 // (parsed with parseMolscene, unchanged) sharing atom ids between them so
@@ -101,6 +113,7 @@ export function parseReactionOrMolecule(text){
   if (!isReaction) return Object.assign({ kind: 'molecule' }, parseMolscene(text));
 
   let name = 'reacción';
+  let description = '';
   let reactantsLines = null, productsLines = null;
   let current = null;
   let buffer = [];
@@ -115,13 +128,16 @@ export function parseReactionOrMolecule(text){
     if (current === null){
       let m;
       if ((m = line.match(RE_REACTION))){ name = m[1].trim(); continue; }
+      if (RE_DESCRIBE.test(line)){ current = 'describe'; buffer = []; continue; }
       if (RE_REACTANTS.test(line)){ current = 'reactants'; buffer = []; continue; }
       if (RE_PRODUCTS.test(line)){ current = 'products'; buffer = []; continue; }
-      errors.push('Línea ' + lineNo + ': se esperaba "reactants" o "products" para abrir un bloque de la reacción.');
+      errors.push('Línea ' + lineNo + ': se esperaba "describe", "reactants" o "products" para abrir un bloque de la reacción.');
       continue;
     }
     if (RE_END.test(line)){
-      if (current === 'reactants') reactantsLines = buffer; else productsLines = buffer;
+      if (current === 'describe') description = buffer.join('\n').trim();
+      else if (current === 'reactants') reactantsLines = buffer;
+      else productsLines = buffer;
       current = null; buffer = [];
       continue;
     }
@@ -130,13 +146,13 @@ export function parseReactionOrMolecule(text){
   if (current !== null) errors.push('Falta "end" para cerrar el bloque "' + current + '".');
   if (reactantsLines === null) errors.push('Falta el bloque "reactants ... end".');
   if (productsLines === null) errors.push('Falta el bloque "products ... end".');
-  if (errors.length) return { kind: 'reaction', name, errors, reactants: null, products: null };
+  if (errors.length) return { kind: 'reaction', name, description, errors, reactants: null, products: null };
 
   const r = parseMolscene(reactantsLines.join('\n'));
   const p = parseMolscene(productsLines.join('\n'));
   r.errors.forEach(function(e){ errors.push('En "reactants": ' + e); });
   p.errors.forEach(function(e){ errors.push('En "products": ' + e); });
-  if (errors.length) return { kind: 'reaction', name, errors, reactants: null, products: null };
+  if (errors.length) return { kind: 'reaction', name, description, errors, reactants: null, products: null };
 
-  return { kind: 'reaction', name, errors: [], reactants: r.model, products: p.model };
+  return { kind: 'reaction', name, description, errors: [], reactants: r.model, products: p.model };
 }

@@ -12,7 +12,8 @@ import { resolveMolscene } from './resolve.js';
 import { ROLE_LABELS } from './roles.js';
 import { makeDotTexture } from './orbitals.js';
 import { buildAtomsAndConnectors, buildGroups } from './scene-build.js';
-import { stepElectrons, applyVisibility } from './electron-motion.js';
+import { buildBallStick } from './ball-stick.js';
+import { stepElectrons, applyVisibility, applyDecorMode } from './electron-motion.js';
 import { createOrbitCamera } from './camera-controls.js';
 import { buildClusterRigs, buildProductRig, centroidOf } from './reaction-scene.js';
 import { updateReactionRig, activeReactionGroups } from './reaction-motion.js';
@@ -36,6 +37,7 @@ export function createViewer(container){
 
   let sceneObjects = [];
   let staticGroups = [];
+  let staticDecor = null;
   let reaction = null;
   let mode = 'cloud';
   let playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -48,7 +50,14 @@ export function createViewer(container){
   }
   function track(o){ scene.add(o); sceneObjects.push(o); return o; }
   function currentGroups(){ return reaction ? activeReactionGroups(reaction, reaction.t) : staticGroups; }
-  function refreshVisibility(){ applyVisibility(currentGroups(), mode, hiddenRoles); }
+  function currentDecors(){
+    if (!reaction) return staticDecor ? [staticDecor] : [];
+    return reaction.clusterRigs.map(function(c){ return c.decor; }).concat([reaction.productRig.decor]);
+  }
+  function refreshVisibility(){
+    applyVisibility(currentGroups(), mode, hiddenRoles);
+    currentDecors().forEach(function(d){ applyDecorMode(d, mode); });
+  }
 
   function makeFlash(){
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTexture, color: 0xffb454, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -59,7 +68,7 @@ export function createViewer(container){
   function load(text){
     clearScene();
     const resolved = resolveMolscene(text);
-    if (resolved.errors.length){ staticGroups = []; reaction = null; return resolved; }
+    if (resolved.errors.length){ staticGroups = []; staticDecor = null; reaction = null; return resolved; }
 
     if (resolved.kind === 'reaction'){
       const convergence = centroidOf(resolved.reactants.atoms);
@@ -68,13 +77,15 @@ export function createViewer(container){
       const flash = makeFlash();
       flash.position.copy(convergence);
       reaction = { clusterRigs, productRig, convergence, flash, t: 0, playing: false };
-      staticGroups = [];
+      staticGroups = []; staticDecor = null;
       updateReactionRig(reaction, 0);
       orbitCamera.fitTo(resolved.reactants.atoms.map(function(a){ return a.pos; }), resolved.reactants.view || resolved.products.view);
     } else {
       reaction = null;
-      const nucleusOf = buildAtomsAndConnectors(resolved, track, dotTexture);
-      staticGroups = buildGroups(resolved, nucleusOf, track, dotTexture);
+      const built = buildAtomsAndConnectors(resolved, track, dotTexture);
+      staticGroups = buildGroups(resolved, built.nucleusOf, track, dotTexture);
+      const stickMeshes = buildBallStick(resolved, built.nucleusOf, track);
+      staticDecor = { nucleiSpheres: built.nucleiSpheres, sigmaGuideLines: built.sigmaGuideLines, stickMeshes };
       orbitCamera.fitTo(resolved.atoms.map(function(a){ return a.pos; }), resolved.view);
     }
     refreshVisibility();

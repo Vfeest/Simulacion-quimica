@@ -33,9 +33,10 @@ function resolveModel(model){
   const metallic = buildMetallicGroups(model, chem, positions);
 
   return {
-    warnings: chem.warnings, name: model.name, atoms,
+    warnings: chem.warnings, name: model.name, description: model.description, atoms,
     groups: bonds.groups.concat(lone, metallic.groups),
     connectors: bonds.connectors.concat(metallic.connectors),
+    bonds: bonds.covalentBonds,
     view: model.view
   };
 }
@@ -45,13 +46,13 @@ export function resolveMolscene(text){
 
   if (parsed.kind === 'molecule'){
     if (parsed.errors.length){
-      return { kind: 'molecule', errors: parsed.errors, warnings: [], atoms: [], groups: [], connectors: [], name: parsed.model.name, view: parsed.model.view };
+      return { kind: 'molecule', errors: parsed.errors, warnings: [], atoms: [], groups: [], connectors: [], bonds: [], name: parsed.model.name, description: parsed.model.description, view: parsed.model.view };
     }
     return Object.assign({ kind: 'molecule', errors: [] }, resolveModel(parsed.model));
   }
 
   if (parsed.errors.length){
-    return { kind: 'reaction', errors: parsed.errors, warnings: [], name: parsed.name, reactants: null, products: null };
+    return { kind: 'reaction', errors: parsed.errors, warnings: [], name: parsed.name, description: parsed.description, reactants: null, products: null };
   }
 
   const reactants = resolveModel(parsed.reactants);
@@ -62,5 +63,5 @@ export function resolveMolscene(text){
   idsA.forEach(function(id){ if (!idsB.has(id)) warnings.push('El átomo "' + id + '" está en "reactants" pero no en "products".'); });
   idsB.forEach(function(id){ if (!idsA.has(id)) warnings.push('El átomo "' + id + '" está en "products" pero no en "reactants".'); });
 
-  return { kind: 'reaction', errors: [], warnings, name: parsed.name, reactants, products };
+  return { kind: 'reaction', errors: [], warnings, name: parsed.name, description: parsed.description, reactants, products };
 }

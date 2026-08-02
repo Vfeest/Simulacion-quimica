@@ -21,6 +21,7 @@ function updateTrailGeometry(g){
 }
 
 export function stepElectrons(groups, mode, speedFactor, hiddenRoles){
+  if (mode === 'ballstick') return;
   const sigma = (mode === 'cloud' ? 0.16 : 0.1) * speedFactor;
   const substeps = Math.max(1, Math.round(2 * speedFactor) + 1);
   groups.forEach(function(g){
@@ -36,12 +37,26 @@ export function stepElectrons(groups, mode, speedFactor, hiddenRoles){
   });
 }
 
+const BALLSTICK_SCALE = 2;
+
 export function applyVisibility(groups, mode, hiddenRoles){
+  const showElectrons = mode !== 'ballstick';
   groups.forEach(function(g){
     const visible = !hiddenRoles.has(g.role);
     g.cloudPoints.visible = visible && mode === 'cloud';
     g.trailPoints.visible = visible && mode === 'cloud';
     g.shellMeshes.forEach(function(m){ m.visible = visible && mode === 'atmosphere'; });
-    g.electrons.forEach(function(e){ e.ball.visible = visible; e.glow.visible = visible; });
+    g.electrons.forEach(function(e){ e.ball.visible = visible && showElectrons; e.glow.visible = visible && showElectrons; });
   });
+}
+
+// The skeleton (nuclei + sticks), separate from the electron groups above:
+// bigger nuclei and solid bond cylinders only in "ballstick" mode, the
+// thin per-bond guide line only when something else (a cloud/shell) is
+// already showing where the bond is.
+export function applyDecorMode(decor, mode){
+  const isBallStick = mode === 'ballstick';
+  decor.nucleiSpheres.forEach(function(s){ s.scale.setScalar(isBallStick ? BALLSTICK_SCALE : 1); });
+  decor.sigmaGuideLines.forEach(function(l){ l.visible = !isBallStick; });
+  decor.stickMeshes.forEach(function(m){ m.visible = isBallStick; });
 }

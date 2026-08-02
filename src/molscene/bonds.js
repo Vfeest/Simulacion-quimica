@@ -13,6 +13,7 @@ const PI_ROLES = ['pi1', 'pi2'];
 export function buildBondGroups(model, chem, positions){
   const groups = [];
   const connectors = [];
+  const covalentBonds = [];
   const sigmaAxis = new Map();
   chem.atoms.forEach(function(_, id){ sigmaAxis.set(id, new Map()); });
 
@@ -24,6 +25,9 @@ export function buildBondGroups(model, chem, positions){
       connectors.push({ a: b.a, b: b.b, kind: b.order });
       return;
     }
+
+    const order = b.order === 'single' ? 1 : b.order === 'double' ? 2 : 3;
+    covalentBonds.push({ a: b.a, b: b.b, order });
 
     const axisLine = normalize(sub(positions.get(b.b), positions.get(b.a)));
     const dirAtoB = axisLine, dirBtoA = scale(axisLine, -1);
@@ -38,7 +42,6 @@ export function buildBondGroups(model, chem, positions){
       ]
     });
 
-    const order = b.order === 'single' ? 1 : b.order === 'double' ? 2 : 3;
     const piCount = order - 1;
     if (piCount > 0){
       perpFrame(axisLine).slice(0, piCount).forEach(function(axis, i){
@@ -54,5 +57,5 @@ export function buildBondGroups(model, chem, positions){
     }
   });
 
-  return { groups, connectors, sigmaAxis };
+  return { groups, connectors, covalentBonds, sigmaAxis };
 }

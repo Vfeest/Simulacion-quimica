@@ -35,6 +35,7 @@ body{ margin:0; background:var(--bg); color:var(--text); font-family:'Plex Sans'
 .panel{ background:var(--bg-panel); border-left:1px solid var(--line); padding:26px 26px 20px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
 .eyebrow{ font-family:'Plex Mono', monospace; font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); }
 h1{ font-family:'Fraunces Display', serif; font-weight:600; font-size:1.5rem; line-height:1.15; letter-spacing:-.01em; margin:2px 0 0; }
+.lede{ font-size:.88rem; line-height:1.6; color:var(--text-muted); margin:10px 0 0; white-space:pre-wrap; }
 textarea{
   width:100%; min-height:190px; resize:vertical;
   background:#0a1019; color:var(--text); border:1px solid var(--line); padding:12px;

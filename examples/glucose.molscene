@@ -1,0 +1,83 @@
+molecule Beta-D-Glucopiranosa (Glucosa)
+
+describe
+La glucosa (C6H12O6) es el azúcar simple más importante del metabolismo
+energético. En solución, casi toda existe en esta forma cíclica de seis
+miembros (piranosa): el C1 y el C5 quedan unidos a través de un oxígeno
+del anillo (O5), no directamente entre sí. Cada carbono del anillo es
+sp3 y lleva un grupo hidroxilo (-OH) excepto el C5, que en cambio sostiene
+el brazo -CH2OH (C6-O6) que cuelga por fuera del anillo. Los oxígenos —
+tanto el del anillo como los de cada hidroxilo — son también sp3, con dos
+pares libres cada uno; son justamente esos pares libres los que hacen que
+la glucosa forme tantos puentes de hidrógeno con el agua (por eso es tan
+soluble) y con otras moléculas de glucosa (por eso el almidón y la
+celulosa, que son cadenas de glucosas unidas, son sólidos).
+end
+
+# --- Átomos del anillo (conformación silla) ---
+atom C1: C at (2.5, -0.7, 0.8)
+atom C2: C at (1.3, -1.5, -0.8)
+atom C3: C at (-1.3, -1.5, 0.8)
+atom C4: C at (-2.5, -0.7, -0.8)
+atom C5: C at (-1.3, 0.8, 0.8)
+atom O5: O at (1.3, 0.8, -0.8)
+
+# --- Oxígenos de los hidroxilos ---
+atom O1: O at (4.0, -1.2, 1.8)
+atom O2: O at (1.9, -2.8, -1.8)
+atom O3: O at (-1.9, -2.8, 1.8)
+atom O4: O at (-4.0, -1.2, -1.8)
+
+# --- Carbono exocíclico C6 y oxígeno O6 ---
+atom C6: C at (-1.9, 1.8, 2.5)
+atom O6: O at (-3.2, 2.8, 2.0)
+
+# --- Hidrógenos del esqueleto ---
+atom H1: H at (2.5, 0.2, 1.8)
+atom H2: H at (0.7, -0.8, -1.8)
+atom H3: H at (-0.7, -0.8, 1.8)
+atom H4: H at (-2.5, 0.2, -1.8)
+atom H5: H at (-0.7, 1.5, -0.2)
+atom H6A: H at (-1.9, 1.2, 3.8)
+atom H6B: H at (-0.9, 2.8, 2.5)
+
+# --- Hidrógenos de los hidroxilos (-OH) ---
+atom HO1: H at (4.8, -0.5, 2.3)
+atom HO2: H at (2.7, -2.4, -2.5)
+atom HO3: H at (-2.7, -2.4, 2.5)
+atom HO4: H at (-4.8, -0.5, -2.3)
+atom HO6: H at (-3.6, 3.5, 2.8)
+
+# --- Anillo piranosa ---
+bond C1-C2: single
+bond C2-C3: single
+bond C3-C4: single
+bond C4-C5: single
+bond C5-O5: single
+bond O5-C1: single
+
+# --- Enlaces C-O de hidroxilos ---
+bond C1-O1: single
+bond C2-O2: single
+bond C3-O3: single
+bond C4-O4: single
+
+# --- Sustituyente C6H2OH ---
+bond C5-C6: single
+bond C6-O6: single
+
+# --- Enlaces C-H ---
+bond C1-H1: single
+bond C2-H2: single
+bond C3-H3: single
+bond C4-H4: single
+bond C5-H5: single
+bond C6-H6A: single
+bond C6-H6B: single
+
+# --- Enlaces O-H ---
+bond O1-HO1: single
+bond O2-HO2: single
+bond O3-HO3: single
+bond O4-HO4: single
+bond O6-HO6: single
