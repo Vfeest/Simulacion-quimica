@@ -1,27 +1,36 @@
-// Drives a reaction's timeline (t: 0 -> 1). t < 0.5 is the approach: each
-// reactant cluster eases from its own starting position toward the point
-// where the product will appear. At t = 0.5 the clusters have exactly
-// reached that point, so swapping their visibility for the (already-built,
-// static) product's is a clean cut rather than a jump - punctuated with a
-// brief flash so the "they just bonded" moment actually reads as an event,
-// not a glitch.
+// Drives a reaction's timeline (t: 0 -> 1). Approach (t < 0.5): each
+// reactant cluster eases toward the point where the product will appear.
+// Around that same midpoint, instead of an instant visibility swap, the
+// reactant clusters shrink toward their own centroid while the (already
+// built, static) product grows from its centroid, overlapping - the two
+// read as dissolving into one another rather than a hard cut, with a
+// small, brief, warm-toned spark (not a flash) marking the instant.
 
 function smoothstep(t){ return t * t * (3 - 2 * t); }
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
 
+const APPROACH_END = 0.5;
+const MORPH_START = 0.42, MORPH_END = 0.58;
 export const IMPACT_T = 0.5;
 
 export function updateReactionRig(rig, t){
-  const localT = Math.min(1, Math.max(0, t / IMPACT_T));
-  const eased = smoothstep(localT);
-  rig.clusterRigs.forEach(function(c){ c.group.position.lerpVectors(c.start, rig.convergence, eased); });
+  const approach = smoothstep(clamp01(t / APPROACH_END));
+  rig.clusterRigs.forEach(function(c){ c.group.position.lerpVectors(c.start, rig.convergence, approach); });
 
-  const showProduct = t >= IMPACT_T;
-  rig.clusterRigs.forEach(function(c){ c.group.visible = !showProduct; });
-  rig.productRig.group.visible = showProduct;
+  const morph = smoothstep(clamp01((t - MORPH_START) / (MORPH_END - MORPH_START)));
+  const clusterScale = Math.max(0.001, 1 - morph);
+  rig.clusterRigs.forEach(function(c){
+    c.group.scale.setScalar(clusterScale);
+    c.group.visible = clusterScale > 0.002;
+  });
+  const productScale = Math.max(0.001, morph);
+  rig.productRig.group.scale.setScalar(productScale);
+  rig.productRig.group.visible = productScale > 0.002;
 
   if (rig.flash){
     const d = Math.abs(t - IMPACT_T);
-    rig.flash.material.opacity = d < 0.1 ? (1 - d / 0.1) * 0.85 : 0;
+    const w = 0.09;
+    rig.flash.material.opacity = d < w ? (1 - d / w) * 0.35 : 0;
   }
 }
 

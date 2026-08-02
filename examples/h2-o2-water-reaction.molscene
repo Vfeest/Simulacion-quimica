@@ -1,0 +1,29 @@
+reaction 2 H2 + O2 → 2 H2O
+
+reactants
+  atom A: H
+  atom B: H
+  bond A-B: single
+
+  atom E: H
+  atom F: H
+  bond E-F: single
+
+  atom C: O
+  atom D: O
+  bond C-D: double
+end
+
+products
+  atom C: O
+  atom A: H
+  atom E: H
+  bond C-A: single
+  bond C-E: single
+
+  atom D: O
+  atom B: H
+  atom F: H
+  bond D-B: single
+  bond D-F: single
+end

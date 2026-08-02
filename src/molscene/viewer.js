@@ -51,8 +51,8 @@ export function createViewer(container){
   function refreshVisibility(){ applyVisibility(currentGroups(), mode, hiddenRoles); }
 
   function makeFlash(){
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTexture, color: 0xfff2d8, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-    sprite.scale.set(1.4, 1.4, 1);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTexture, color: 0xffb454, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+    sprite.scale.set(0.7, 0.7, 1);
     return track(sprite);
   }
 

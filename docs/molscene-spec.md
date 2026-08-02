@@ -221,15 +221,18 @@ La animación tiene dos tiempos, controlados por un progreso `t` de 0 a 1:
    (detectada automáticamente por su conectividad) viaja como **cuerpo
    rígido** — su geometría interna no cambia, solo se traslada — desde su
    posición inicial hacia el punto donde ocurre la reacción.
-2. **Unión** (`t` = 0.5): un destello marca el instante, y la escena
-   cambia a la estructura ya resuelta de `products`, con sus propios
-   orbitales y electrones (incluyendo los que ya no se comparten, como
-   los pares libres que le "sobran" a un átomo tras romperse un enlace).
+2. **Unión** (`t` ≈ 0.42 → 0.58, centrado en 0.5): en vez de un corte
+   instantáneo, cada molécula de `reactants` se encoge hacia su propio
+   centro mientras la estructura ya resuelta de `products` crece desde el
+   suyo — se superponen, así que una se disuelve en la otra en vez de
+   reemplazarla de golpe — acompañado de una chispa breve y tenue (no un
+   destello grande) para marcar el instante exacto.
 
 No es una simulación continua de ruptura/formación de enlaces (los
-orbitales no se deforman en el tiempo) — es una aproximación rígida
-seguida de un corte limpio, pensada para que el momento de la unión se
-lea con claridad más que para ser cuantitativamente exacta.
+orbitales no se deforman en el tiempo, ni hay una molécula intermedia
+químicamente real durante la mezcla) — es una aproximación rígida con una
+transición suavizada, pensada para que el momento de la unión se lea con
+fluidez más que para ser cuantitativamente exacta.
 
 Uso programático (ver `viewer.load` en la sección siguiente):
 
@@ -263,9 +266,9 @@ Deliberadamente fuera de esta versión:
 - Reacciones de más de un paso (mecanismos con intermediarios) — hoy una
   `reaction` es siempre antes/después de 2 puntos, no una secuencia.
 - Ruptura/formación de enlaces animada de forma continua durante el
-  acercamiento — ver "Reacciones" más arriba, es una aproximación rígida
-  con un corte limpio en el instante de la unión, no una deformación
-  gradual de los orbitales.
+  acercamiento — ver "Reacciones" más arriba: la transición se disuelve
+  con fluidez, pero sigue siendo un cambio de estructura, no una
+  deformación gradual y físicamente exacta de los orbitales.
 
 ## Uso programático
 
