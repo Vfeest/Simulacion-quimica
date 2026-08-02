@@ -30,10 +30,34 @@ y abrir `demo/index.html` (por ejemplo `http://localhost:3000/demo/`).
 
 Cubre bien química general y orgánica de bloque principal: orbitales s/p,
 hibridación sp/sp2/sp3/sp3d/sp3d2 inferida automáticamente, enlaces
-covalentes simples/dobles/triples, iónicos y puente de hidrógeno, pares
-libres y radicales. No incluye orbitales d/f reales de metales de
-transición, enlace metálico, ni sistemas aromáticos deslocalizados —
-detalle completo en la sección "Limitaciones" de la spec.
+covalentes simples/dobles/triples, iónicos, metálicos (mar de electrones
+simplificado) y puente de hidrógeno, pares libres y radicales. No incluye
+orbitales d/f reales de metales de transición, teoría de bandas, ni
+sistemas aromáticos deslocalizados — detalle completo en la sección
+"Limitaciones" de la spec.
+
+## Estructura de `src/molscene/`
+
+Cada archivo tiene una sola responsabilidad — pensado para que abrir uno
+alcance para entenderlo, sin tener que cargar el resto del motor:
+
+| Archivo | Responsabilidad |
+|---|---|
+| `elements.js` | Datos por elemento (valencia, radio covalente, color). |
+| `parser.js` | Texto molscene → AST (átomos, enlaces, vista). |
+| `chemistry.js` | Electrones de valencia → pares libres / radicales / hibridación por átomo. |
+| `geometry.js` | Vectores + el solver de repulsión (VSEPR) que usan `layout.js` y `lone-pairs.js`. |
+| `layout.js` | Posiciones 3D automáticas cuando falta `at (...)`. |
+| `bonds.js` | Enlaces covalentes → grupos σ/π. |
+| `lone-pairs.js` | Pares libres / radicales → grupos. |
+| `metallic.js` | Cúmulos de enlace metálico → grupo de "mar de electrones". |
+| `roles.js` | Color y etiqueta de cada rol de grupo (única fuente de verdad). |
+| `resolve.js` | Orquesta todo lo anterior → el modelo de escena resuelto. |
+| `orbitals.js` | Matemática de orbitales (s/p/híbrido) y su malla 3D — no sabe nada de molscene. |
+| `scene-build.js` | Modelo resuelto → objetos Three.js (núcleos, nubes, esferas). |
+| `camera-controls.js` | Cámara orbital (arrastre, zoom, encuadre automático). |
+| `electron-motion.js` | Simulación por cuadro + visibilidad por modo/rol. |
+| `viewer.js` | Punto de entrada público: conecta todo lo anterior. |
 
 ## Vendored
 

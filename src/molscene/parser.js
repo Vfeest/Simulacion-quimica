@@ -7,7 +7,7 @@ import { ELEMENTS } from './elements.js';
 
 const RE_MOLECULE = /^molecule\s+(.+)$/i;
 const RE_ATOM = /^atom\s+(\w+)\s*:\s*([A-Za-z]{1,2})\s*(.*)$/i;
-const RE_BOND = /^bond\s+(\w+)\s*-\s*(\w+)\s*:\s*(single|double|triple|ionic|hydrogen)\s*(.*)$/i;
+const RE_BOND = /^bond\s+(\w+)\s*-\s*(\w+)\s*:\s*(single|double|triple|ionic|hydrogen|metallic)\s*(.*)$/i;
 const RE_VIEW = /^view\s+(.*)$/i;
 const RE_AT = /at\s*\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/i;
 const RE_CHARGE = /charge\s+(-?\d+)/i;

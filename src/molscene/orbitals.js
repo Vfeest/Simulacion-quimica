@@ -43,12 +43,12 @@ export function psiParticipant(pos, nucleus, axis, sFrac, a0){
 
 export function groupDensity(pos, participants, nucleusOf){
   let psi = 0;
-  for (const p of participants) psi += psiParticipant(pos, nucleusOf(p.atomId), p.axis, p.sFrac);
+  for (const p of participants) psi += psiParticipant(pos, nucleusOf(p.atomId), p.axis, p.sFrac, p.a0);
   return psi * psi;
 }
 
 export function participantInside(pos, participant, nucleus){
-  if (isSpherical(participant.sFrac)) return pos.distanceTo(nucleus) <= SPHERE_RADIUS;
+  if (isSpherical(participant.sFrac)) return pos.distanceTo(nucleus) <= (participant.radius || SPHERE_RADIUS);
   const d = pos.clone().sub(nucleus);
   const t = d.dot(participant.axis);
   const perp = d.clone().sub(participant.axis.clone().multiplyScalar(t)).length();
@@ -91,7 +91,7 @@ export function participantShellMeshes(participant, nucleus, colorHex, scene){
   const mat = function(){ return new THREE.MeshPhysicalMaterial({ color: colorHex, transparent: true, opacity: 0.15, roughness: 0.3, metalness: 0, side: THREE.DoubleSide, depthWrite: false }); };
 
   if (isSpherical(participant.sFrac)){
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(SPHERE_RADIUS, 22, 22), mat());
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(participant.radius || SPHERE_RADIUS, 22, 22), mat());
     mesh.position.copy(nucleus);
     scene.add(mesh);
     return [mesh];

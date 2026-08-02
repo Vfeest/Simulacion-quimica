@@ -20,7 +20,7 @@ const HYBRID_TABLE = {
 export function resolveChemistry(model){
   const warnings = [];
   const atomsById = new Map();
-  model.atoms.forEach(function(a){ atomsById.set(a.id, { def: a, covalent: [], ionic: [], hydrogen: [] }); });
+  model.atoms.forEach(function(a){ atomsById.set(a.id, { def: a, covalent: [], ionic: [], hydrogen: [], metallic: [] }); });
 
   model.bonds.forEach(function(b){
     const A = atomsById.get(b.a), B = atomsById.get(b.b);
@@ -31,6 +31,8 @@ export function resolveChemistry(model){
       A.ionic.push({ id: b.b, line: b.line }); B.ionic.push({ id: b.a, line: b.line });
     } else if (b.order === 'hydrogen'){
       A.hydrogen.push({ id: b.b, line: b.line }); B.hydrogen.push({ id: b.a, line: b.line });
+    } else if (b.order === 'metallic'){
+      A.metallic.push({ id: b.b, line: b.line }); B.metallic.push({ id: b.a, line: b.line });
     } else {
       A.covalent.push({ id: b.b, order, line: b.line }); B.covalent.push({ id: b.a, order, line: b.line });
     }
@@ -44,7 +46,8 @@ export function resolveChemistry(model){
     const piCount = rec.covalent.reduce(function(sum, n){ return sum + (n.order - 1); }, 0);
     const electronsInBonds = sigmaCount + piCount;
 
-    let lonePairs, radicals;
+    const hasMetallic = rec.metallic.length > 0;
+    let lonePairs, radicals, poolElectrons = 0;
     if (rec.def.lonepairsOverride != null){
       lonePairs = rec.def.lonepairsOverride;
       radicals = 0;
@@ -54,8 +57,16 @@ export function resolveChemistry(model){
         warnings.push('Átomo "' + id + '" (línea ' + rec.def.line + '): tiene más enlaces de los que sus electrones de valencia permiten; revisá el orden de enlace o la carga.');
         remaining = 0;
       }
-      lonePairs = Math.floor(remaining / 2);
-      radicals = remaining % 2;
+      if (hasMetallic){
+        // Electrons not already spent on covalent bonds join the shared
+        // "electron sea" of the metallic cluster instead of staying as
+        // this atom's own lone pairs - see metallic.js.
+        poolElectrons = remaining;
+        lonePairs = 0; radicals = 0;
+      } else {
+        lonePairs = Math.floor(remaining / 2);
+        radicals = remaining % 2;
+      }
     }
 
     const isHydrogenLike = rec.def.element === 'H' || rec.def.element === 'He';
@@ -66,9 +77,9 @@ export function resolveChemistry(model){
 
     atoms.set(id, {
       id, element: rec.def.element, charge: rec.def.charge, explicitPos: rec.def.pos,
-      valenceElectrons, sigmaCount, piCount, lonePairs, radicals,
+      valenceElectrons, sigmaCount, piCount, lonePairs, radicals, poolElectrons,
       stericNumber, hybridLabel: hybrid.label, sFrac: hybrid.sFrac,
-      covalent: rec.covalent, ionic: rec.ionic, hydrogen: rec.hydrogen
+      covalent: rec.covalent, ionic: rec.ionic, hydrogen: rec.hydrogen, metallic: rec.metallic
     });
   });
 

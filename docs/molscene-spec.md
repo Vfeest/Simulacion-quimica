@@ -74,6 +74,14 @@ view [azimuth <rad>] [polar <rad>] [radius <unidades>]
     conector punteado.
   - `hydrogen`: interacción débil, solo se dibuja como guía punteada; no
     consume electrones de ningún átomo.
+  - `metallic`: enlace metálico. Los átomos conectados por enlaces
+    `metallic` forman un **cúmulo**; los electrones de valencia que les
+    sobran después de sus enlaces covalentes (si tienen) no quedan como
+    pares libres de un átomo puntual — se agrupan en un único "mar de
+    electrones" que vaga libremente por *todo* el cúmulo (ver "Enlace
+    metálico" más abajo). Necesita al menos 2 átomos conectados entre sí
+    con `metallic` para formar un cúmulo; para geometrías de red conviene
+    dar `at (x, y, z)` explícito (ver "Auto-layout").
 - **`view`**: opcional, fija la cámara inicial en vez del encuadre
   automático.
 
@@ -117,6 +125,39 @@ o geometrías conocidas (que el cierre de un ciclo no puede resolver por sí
 solo), especificá `at (x, y, z)` a mano en los átomos que lo necesiten —
 podés mezclar átomos con y sin posición explícita en la misma molécula.
 
+## Enlace metálico
+
+A diferencia de un enlace covalente (2 electrones, 1 par, entre 2 átomos
+puntuales), un enlace metálico modela **N electrones libres sobre un cúmulo
+de M átomos**: cada átomo del cúmulo (conectado por `bond ...: metallic`)
+aporta sus electrones de valencia sobrantes a una bolsa común, y esa bolsa
+se renderiza como **un solo grupo** cuyos participantes son *todos* los
+átomos del cúmulo — sin eje, sin dirección preferida, carácter s puro
+(igual que un par libre esférico), a propósito: la idea del enlace
+metálico es justamente que esos electrones no pertenecen a nadie en
+particular.
+
+Para que el electrón pueda efectivamente recorrer el cúmulo (y no quedar
+atrapado cerca del átomo donde apareció), el radio de la esfera de cada
+átomo — y, en modo Nube, el alcance efectivo de su densidad — se escala a
+partir de la distancia real más corta entre átomos enlazados del cúmulo,
+de forma que las esferas de vecinos declarados con `metallic` siempre se
+superpongan.
+
+```molscene
+molecule Cúmulo metálico (4 Na)
+
+atom Na1: Na at (0, 0, 0)
+atom Na2: Na at (3.6, 0, 0)
+atom Na3: Na at (3.6, 0, 3.6)
+atom Na4: Na at (0, 0, 3.6)
+
+bond Na1-Na2: metallic
+bond Na2-Na3: metallic
+bond Na3-Na4: metallic
+bond Na4-Na1: metallic
+```
+
 ## Modos de visualización
 
 El motor separa **qué es cada grupo de electrones** (resuelto por la
@@ -140,15 +181,19 @@ así el color siempre significa lo mismo sin importar qué se esté mirando.
 ## Limitaciones (roadmap)
 
 Alcance actual: química general y orgánica de bloque principal (s/p),
-enlace covalente simple/doble/triple, iónico, puente de hidrógeno,
-hibridación sp/sp2/sp3/sp3d/sp3d2, radicales.
+enlace covalente simple/doble/triple, iónico, metálico (mar de electrones
+simplificado, sin teoría de bandas), puente de hidrógeno, hibridación
+sp/sp2/sp3/sp3d/sp3d2, radicales.
 
 Deliberadamente fuera de esta versión:
 
 - Orbitales d/f reales de metales de transición y teoría de campo
   cristalino (los metales de transición se pueden declarar y enlazar, pero
-  sin lóbulos d auténticos).
-- Enlace metálico / mar de electrones / teoría de bandas.
+  sin lóbulos d auténticos; el mar de electrones metálico usa carácter s
+  puro, no d).
+- Teoría de bandas (niveles de energía, conductividad) — el enlace
+  metálico acá es solo la parte visual de "electrones libres sobre un
+  cúmulo", no un modelo de estructura de bandas.
 - Sistemas aromáticos deslocalizados (un anillo bencénico hoy se describe
   como enlaces alternados simples/dobles, no como una nube deslocalizada).
 - Animaciones de reacciones (transición entre dos estructuras en el

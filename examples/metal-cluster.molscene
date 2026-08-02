@@ -1,0 +1,13 @@
+molecule Cúmulo metálico (4 Na)
+
+atom Na1: Na at (0, 0, 0)
+atom Na2: Na at (3.6, 0, 0)
+atom Na3: Na at (3.6, 0, 3.6)
+atom Na4: Na at (0, 0, 3.6)
+
+bond Na1-Na2: metallic
+bond Na2-Na3: metallic
+bond Na3-Na4: metallic
+bond Na4-Na1: metallic
+bond Na1-Na3: metallic
+bond Na2-Na4: metallic
