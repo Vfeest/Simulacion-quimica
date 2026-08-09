@@ -1,0 +1,16 @@
+molecule Puente de hidrógeno (2 H2O)
+
+atom O1: O
+atom H1a: H
+atom H1b: H
+
+atom O2: O at (3.4, 0, 0)
+atom H2a: H
+atom H2b: H
+
+bond O1-H1a: single
+bond O1-H1b: single
+bond O2-H2a: single
+bond O2-H2b: single
+
+bond H1a-O2: hydrogen

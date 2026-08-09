@@ -1,0 +1,6 @@
+molecule N2
+
+atom A: N
+atom B: N
+
+bond A-B: triple

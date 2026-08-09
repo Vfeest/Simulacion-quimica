@@ -1,0 +1,10 @@
+molecule NH3
+
+atom N: N
+atom H1: H
+atom H2: H
+atom H3: H
+
+bond N-H1: single
+bond N-H2: single
+bond N-H3: single
