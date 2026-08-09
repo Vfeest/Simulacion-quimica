@@ -1,0 +1,9 @@
+{
+  "name": "simulacion-quimica",
+  "private": true,
+  "description": "molscene: motor de visualización molecular 3D + lenguaje declarativo para IA",
+  "type": "module",
+  "scripts": {
+    "build:artifacts": "node scripts/build-artifact.mjs --mode=module > dist/molscene-engine.module.js && node scripts/build-artifact.mjs --mode=standalone examples/h2.molscene > dist/molscene-standalone-template.html"
+  }
+}
