@@ -18,6 +18,10 @@ Demo en vivo: **https://vfeest.github.io/Simulacion-quimica/demo/index.html**
   el motor como ~19 archivos separados (ver `docs/ai-integration.md`).
   Regenerar con `npm run build:artifacts` tras tocar `src/molscene/` o
   `vendor/three/`.
+- **`userscript/molscene-render.user.js`** — userscript de Tampermonkey:
+  detecta un bloque de código molscene en cualquier chat de IA
+  (claude.ai, ChatGPT, Gemini...) y renderiza la molécula justo debajo,
+  sin que la IA necesite saber nada de este proyecto.
 - **`examples/*.molscene`** — moléculas de ejemplo (H₂, N₂, H₂O, NH₃, CH₄,
   CO₂, HCl, NaCl, cúmulo metálico, puente de hidrógeno, glucosa con
   descripción, y dos reacciones animadas: H₂ + Cl₂ → 2 HCl y

@@ -25,9 +25,17 @@
 //                      be swapped for a different molecule by editing only
 //                      that block.
 //
+//   --mode=shell       same as standalone, but with a literal
+//                      "{{MOLSCENE_SOURCE}}" placeholder instead of a real
+//                      molecule, for a caller that splices its own molscene
+//                      text in at runtime (e.g. userscript/molscene-render.
+//                      user.js, which fetches this once and reuses it for
+//                      every code block it finds on the page).
+//
 // Usage:
 //   node scripts/build-artifact.mjs --mode=module > dist/molscene-engine.module.js
 //   node scripts/build-artifact.mjs --mode=standalone examples/glucose.molscene > out.html
+//   node scripts/build-artifact.mjs --mode=shell > dist/molscene-shell.html
 //
 // Regenerate dist/ after any change under src/molscene/ or vendor/three/:
 //   npm run build:artifacts
@@ -50,6 +58,8 @@ const FILES = [
   'camera-controls.js', 'electron-motion.js', 'reaction-scene.js',
   'reaction-motion.js', 'viewer.js'
 ];
+
+const SHELL_PLACEHOLDER = '{{MOLSCENE_SOURCE}}';
 
 const IMPORT_LINE = /^import\s.+;\s*$/;
 const BARE_EXPORT_LINE = /^export\s*\{[^}]*\}(\s*from\s*'[^']+')?;\s*$/;
@@ -218,8 +228,14 @@ function main(){
     const molPath = positional[0] || join(ROOT, 'examples', 'h2.molscene');
     const molsceneText = readFileSync(molPath, 'utf8');
     process.stdout.write(buildStandaloneHtml(molsceneText, molPath));
+  } else if (mode === 'shell'){
+    // Same standalone document, but with a literal placeholder instead of
+    // real molscene text - for callers that splice their own text in at
+    // runtime (see userscript/molscene-render.user.js) instead of baking
+    // one molecule in at build time.
+    process.stdout.write(buildStandaloneHtml(SHELL_PLACEHOLDER, '(shell - runtime placeholder)'));
   } else {
-    console.error('Unknown --mode="' + mode + '" (expected module|standalone)');
+    console.error('Unknown --mode="' + mode + '" (expected module|standalone|shell)');
     process.exit(1);
   }
 }

@@ -2,14 +2,16 @@
 
 Este documento es para una IA (o quien la esté configurando) que quiere que
 sus respuestas incluyan visualizaciones moleculares con este motor, en vez
-de solo texto. Hay dos caminos, según dónde corra el artifact/página que la
-IA genera - **elegí uno según el sandbox del host**, no son intercambiables:
+de solo texto. Hay tres caminos, según dónde corra el artifact/página que
+la IA genera - **elegí uno según el sandbox del host**, no son
+intercambiables:
 
-| | Camino A — motor hospedado | Camino B — bundle autocontenido |
-|---|---|---|
-| Cuándo usarlo | El host puede cargar scripts desde `vfeest.github.io` (una web propia, un IDE, la mayoría de herramientas de IA para código) | El host bloquea toda petición de red saliente salvo a orígenes preaprobados (p. ej. los artifacts de claude.ai) |
-| Qué se pega | 5 líneas | El motor completo, una vez |
-| Se actualiza solo con nuevos pushes al repo | Sí | No — hay que regenerar el bundle |
+| | Camino A — motor hospedado | Camino B — bundle autocontenido | Camino C — userscript |
+|---|---|---|---|
+| Cuándo usarlo | El host puede cargar scripts desde `vfeest.github.io` (una web propia, un IDE, la mayoría de herramientas de IA para código) | El host bloquea toda petición de red saliente salvo a orígenes preaprobados (p. ej. los artifacts de claude.ai) | Querés que funcione en **cualquier** chat de IA (claude.ai, ChatGPT, Gemini...) sin que esa IA arme nada especial - solo que escriba el código molscene |
+| Qué se pega | 5 líneas | El motor completo, una vez | Nada — se instala una vez en el navegador |
+| Se actualiza solo con nuevos pushes al repo | Sí | No — hay que regenerar el bundle | Sí (el shell se descarga en cada carga de página) |
+| Requiere que la IA sepa de este proyecto | Sí | Sí | No — alcanza con que escriba un bloque de código molscene, algo que ya hace por sí sola si se le pide "mostrame esto en molscene" |
 
 ## Camino A: motor hospedado (GitHub Pages)
 
@@ -107,11 +109,51 @@ probable en claude.ai, posible en otros clones de este flujo), usá
 `molscene-standalone-template.html` como base en su lugar — mismo patrón,
 pero sin depender de nada preinstalado.
 
-## Qué NO hace ninguno de los dos caminos
+## Camino C: userscript (funciona en cualquier chat, sin configurar nada del lado de la IA)
+
+Los caminos A y B necesitan que la IA "sepa" de este proyecto (Project
+knowledge, instrucciones a medida). El Camino C da vuelta el problema: en
+vez de enseñarle al chat a construir el visor, un userscript de
+Tampermonkey vigila la página y arma el visor él mismo apenas detecta un
+bloque de código que es molscene — igual que muchos chats ya renderizan un
+diagrama Mermaid con solo ver un bloque ` ```mermaid `. Ya no importa si es
+claude.ai, ChatGPT o Gemini: alcanza con pedirle a la IA "mostrame esto en
+molscene" (o directamente pegarle `docs/molscene-spec.md`) y que la
+respuesta traiga un bloque de código con esa gramática.
+
+**Instalación**: instalar la extensión [Tampermonkey](https://www.tampermonkey.net/)
+y luego abrir `https://vfeest.github.io/Simulacion-quimica/userscript/molscene-render.user.js`
+— Tampermonkey detecta el encabezado `// ==UserScript==` y ofrece
+instalarlo directo. Ya viene con `@match` para claude.ai, ChatGPT y
+Gemini; agregar más sitios es una línea (`@match https://tu-sitio/*`).
+
+**Cómo detecta el bloque**: no depende de que el sitio marque el lenguaje
+del bloque de código (cada uno lo hace distinto, o no lo hace) — en vez de
+eso, `userscript/molscene-render.user.js` mira el *contenido*: si la
+primera línea no vacía y no-comentario empieza con `molecule` o
+`reaction`, y en algún lado aparece `atom ...:` o `reactants`, lo trata
+como molscene. Con un `MutationObserver` reacciona también a texto que
+todavía se está transmitiendo en streaming (espera ~500 ms sin cambios
+antes de renderizar, y vuelve a renderizar si el texto sigue cambiando).
+
+**Cómo renderiza sin pisar el CSP del sitio**: crea un `<iframe
+sandbox="allow-scripts">` con su propio documento (`srcdoc`) — no
+inyecta nada en el DOM del host más que ese iframe, así que el CSP del
+sitio (claude.ai, ChatGPT, etc.) no aplica al contenido de adentro, y el
+`sandbox` evita que ese contenido pueda leer el DOM/cookies del sitio
+anfitrión. Ese documento interno es el mismo bundle autocontenido del
+Camino B, pero generado con `--mode=shell` (`dist/molscene-shell.html`):
+igual que `molscene-standalone-template.html`, salvo que en vez de una
+molécula fija trae un placeholder `{{MOLSCENE_SOURCE}}` que el userscript
+reemplaza por el texto de cada bloque que encuentra. Se descarga una sola
+vez por carga de página (vía `GM_xmlhttpRequest`, que no está sujeto al
+CSP de la página) y se reutiliza para todos los bloques.
+
+## Qué NO hace ninguno de los tres caminos
 
 Ninguno mantiene el artifact sincronizado con cambios futuros del motor
-por sí solo: el Camino A sí (apunta siempre a la última versión en
-`main`), pero el Camino B congela una copia en el momento en que se generó
-el bundle — si `src/molscene/` cambia, hay que correr
+por sí solo, salvo A y C (ambos apuntan siempre a la última versión en
+`main`/GitHub Pages). El Camino B congela una copia en el momento en que
+se generó el bundle — si `src/molscene/` cambia, hay que correr
 `npm run build:artifacts` de nuevo y volver a subir el archivo actualizado
 al Project knowledge.
