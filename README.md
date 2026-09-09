@@ -4,10 +4,24 @@ Motor de visualización molecular 3D en tiempo real: orbitales, electrones y
 enlaces, descritos en un lenguaje de texto declarativo (**molscene**) para
 que una IA pueda generarlos igual que genera un diagrama Mermaid.
 
+Demo en vivo: **https://vfeest.github.io/Simulacion-quimica/demo/index.html**
+
 - **`docs/molscene-spec.md`** — especificación completa del lenguaje: la
   parte pensada para que la lea una IA.
+- **`docs/ai-integration.md`** — cómo usar el motor desde otra IA o sesión
+  de chat (motor hospedado vs. bundle autocontenido, según qué peticiones
+  de red le permitan al sandbox de destino).
 - **`src/molscene/`** — el motor: parser → inferencia química (VSEPR /
   enlace de valencia simplificado) → geometría 3D → renderizado (Three.js).
+- **`scripts/build-artifact.mjs`** / **`dist/`** — aplana `src/molscene/`
+  en un único archivo sin módulos propios, para hosts que no pueden cargar
+  el motor como ~19 archivos separados (ver `docs/ai-integration.md`).
+  Regenerar con `npm run build:artifacts` tras tocar `src/molscene/` o
+  `vendor/three/`.
+- **`userscript/molscene-render.user.js`** — userscript de Tampermonkey:
+  detecta un bloque de código molscene en cualquier chat de IA
+  (claude.ai, ChatGPT, Gemini...) y renderiza la molécula justo debajo,
+  sin que la IA necesite saber nada de este proyecto.
 - **`examples/*.molscene`** — moléculas de ejemplo (H₂, N₂, H₂O, NH₃, CH₄,
   CO₂, HCl, NaCl, cúmulo metálico, puente de hidrógeno, glucosa con
   descripción, y dos reacciones animadas: H₂ + Cl₂ → 2 HCl y
@@ -36,7 +50,8 @@ hibridación sp/sp2/sp3/sp3d/sp3d2 inferida automáticamente, enlaces
 covalentes simples/dobles/triples, iónicos, metálicos (mar de electrones
 simplificado) y puente de hidrógeno, pares libres y radicales, y
 animación de reacciones (dos moléculas — antes/después — con acercamiento
-rígido y un corte limpio en el instante de la unión). No incluye
+rígido y una transición fluida, sin corte brusco, en el instante de la
+unión). No incluye
 orbitales d/f reales de metales de transición, teoría de bandas, ni
 sistemas aromáticos deslocalizados — detalle completo en la sección
 "Limitaciones" de la spec.
