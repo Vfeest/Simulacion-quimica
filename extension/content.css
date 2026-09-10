@@ -5,6 +5,8 @@
    read side by side. */
 
 .molscene-card {
+  display: flex;
+  flex-direction: column;
   margin: 8px 0;
   border: 1px solid #2a3550;
   border-radius: 10px;
@@ -12,9 +14,18 @@
   background: #070a10;
   color: #e8ecf3;
   font-family: system-ui, sans-serif;
+  resize: vertical;
+  /* height is set inline in content.js, to match the original code
+     block's own rendered height - this is just a fallback for when that
+     couldn't be measured (e.g. the block was already hidden by something
+     else). */
+  height: 480px;
+  min-height: 160px;
+  max-height: 90vh;
 }
 
 .molscene-toolbar {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -48,10 +59,8 @@
 }
 
 .molscene-frame-wrap {
-  height: 480px;
-  min-height: 220px;
-  max-height: 90vh;
-  resize: vertical;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -65,7 +74,8 @@
 
 .molscene-raw {
   display: none;
-  max-height: 480px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
 

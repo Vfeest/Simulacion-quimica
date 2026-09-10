@@ -60,10 +60,17 @@
 
   function buildCard(codeEl) {
     const host = codeEl.closest('pre') || codeEl;
+    // Measured before hiding - display:none collapses the box to 0, so
+    // this has to happen first. Matches the card's total height to
+    // whatever the original code block actually rendered at (its own font
+    // size, line count, host site's own padding/margins) instead of an
+    // arbitrary fixed number that's rarely the same.
+    const hostHeight = host.getBoundingClientRect().height;
     host.style.display = 'none';
 
     const card = document.createElement('div');
     card.className = 'molscene-card';
+    if (hostHeight > 0) card.style.height = Math.round(hostHeight) + 'px';
 
     const toolbar = document.createElement('div');
     toolbar.className = 'molscene-toolbar';
