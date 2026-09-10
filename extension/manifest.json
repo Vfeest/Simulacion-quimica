@@ -18,7 +18,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["dist/molscene-shell.html"],
+      "resources": ["dist/molscene-shell.html", "dist/molscene-shell.js"],
       "matches": [
         "https://claude.ai/*",
         "https://chatgpt.com/*",

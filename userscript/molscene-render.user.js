@@ -1,15 +1,14 @@
 // ==UserScript==
 // @name         molscene inline renderer
 // @namespace    https://github.com/Vfeest/Simulacion-quimica
-// @version      1.0.0
+// @version      1.1.0
 // @description  Renders molscene chemistry code blocks (molecules, orbitals, reactions) inline wherever an AI chat prints one - the same way some tools render Mermaid diagrams.
 // @author       Vfeest
 // @match        https://claude.ai/*
 // @match        https://chatgpt.com/*
 // @match        https://chat.openai.com/*
 // @match        https://gemini.google.com/*
-// @grant        GM_xmlhttpRequest
-// @connect      vfeest.github.io
+// @grant        none
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -18,45 +17,28 @@
 // whose text is molscene (see docs/molscene-spec.md in the repo), and drops
 // a rendered viewer right below it.
 //
-// The viewer runs inside a *sandboxed iframe* with its own self-contained
-// document (three.js + the engine, both inlined - see
-// scripts/build-artifact.mjs, --mode=shell) instead of injecting into the
-// host page directly. Two reasons: the iframe's document has no relation to
-// the host page's Content-Security-Policy, so this works even on a host
-// that would otherwise block loading three.js; and `sandbox="allow-scripts"`
+// The viewer runs inside a sandboxed iframe navigated to a real URL
+// (`iframe.src = SHELL_URL + '#' + encodeURIComponent(text)`) - never given
+// `srcdoc` with the engine spliced in as a string. Why that distinction
+// matters: an `iframe.srcdoc` document inherits the *host page's*
+// Content-Security-Policy (browsers do this on purpose, so srcdoc can't be
+// used to dodge a page's CSP) - and several chat sites' CSP blocks inline
+// scripts outright, which used to make this silently render nothing there.
+// A genuine cross-origin navigation gets GitHub Pages' own (permissive)
+// CSP instead, regardless of the host page's. `sandbox="allow-scripts"`
 // (no allow-same-origin) means the rendered molecule can never read the
 // host page's DOM, cookies, or session - it only ever sees the molscene
-// text we hand it.
+// text baked into that URL fragment.
 //
-// The shell (engine + three.js, ~1.2 MB) is fetched once per page load from
-// GitHub Pages via GM_xmlhttpRequest - a privileged request Tampermonkey
-// makes outside the host page's CSP - and cached in memory; each detected
-// code block only costs a small string splice after that.
+// dist/molscene-shell.html + molscene-shell.js (its engine, as an external
+// file - see scripts/build-artifact.mjs) are static files on GitHub Pages,
+// so no special permission is needed to load them - hence @grant none.
 
 (function () {
   'use strict';
 
   const SHELL_URL = 'https://vfeest.github.io/Simulacion-quimica/dist/molscene-shell.html';
-  const PLACEHOLDER = '{{MOLSCENE_SOURCE}}';
   const DEBOUNCE_MS = 500;
-
-  let shellPromise = null;
-  function loadShell() {
-    if (!shellPromise) {
-      shellPromise = new Promise(function (resolve, reject) {
-        GM_xmlhttpRequest({
-          method: 'GET',
-          url: SHELL_URL,
-          onload: function (res) {
-            if (res.status >= 200 && res.status < 300) resolve(res.responseText);
-            else reject(new Error('molscene shell: HTTP ' + res.status));
-          },
-          onerror: function () { reject(new Error('molscene shell: network error')); }
-        });
-      });
-    }
-    return shellPromise;
-  }
 
   // Content-sniffed instead of relying on a language tag on the <code>
   // element, because every chat site's markdown renderer marks fenced code
@@ -85,31 +67,29 @@
   const lastText = new WeakMap();
   const containerOf = new WeakMap();
 
-  async function renderInto(codeEl) {
+  function renderInto(codeEl) {
     const text = codeEl.textContent.trim();
     if (!text || lastText.get(codeEl) === text) return;
     lastText.set(codeEl, text);
 
-    let shell;
-    try { shell = await loadShell(); }
-    catch (e) { console.error('[molscene]', e); return; }
-
-    const safeText = text.split('</script').join('<\\/script');
-    const html = shell.split(PLACEHOLDER).join(safeText);
-
     let container = containerOf.get(codeEl);
     if (!container) {
       container = document.createElement('div');
-      container.style.cssText = 'margin:8px 0;position:relative;';
-      const iframe = document.createElement('iframe');
-      iframe.setAttribute('sandbox', 'allow-scripts');
-      iframe.style.cssText = 'width:100%;height:480px;border:1px solid #2a3550;border-radius:8px;display:block;background:#070a10;';
-      container.appendChild(iframe);
+      container.style.cssText = 'margin:8px 0;position:relative;height:480px;';
       containerOf.set(codeEl, container);
       const host = codeEl.closest('pre') || codeEl;
       host.insertAdjacentElement('afterend', container);
     }
-    container.querySelector('iframe').srcdoc = html;
+
+    // A fresh iframe per render (instead of reassigning .src on the same
+    // one) sidesteps any ambiguity between a full navigation and an
+    // in-document fragment update - guarantees the engine actually
+    // reinitializes for the new molecule every time.
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('sandbox', 'allow-scripts');
+    iframe.style.cssText = 'width:100%;height:100%;border:1px solid #2a3550;border-radius:8px;display:block;background:#070a10;';
+    iframe.src = SHELL_URL + '#' + encodeURIComponent(text);
+    container.replaceChildren(iframe);
   }
 
   let timer = null;
