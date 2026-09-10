@@ -1,46 +1,75 @@
 #!/usr/bin/env node
-// Bundles src/molscene/*.js (and, for --mode=standalone, vendor/three) into
-// one dependency-free file. Exists because the live demo (demo/) loads the
-// engine as ~19 separate ES modules via a relative import graph, which only
-// works when all of those files are actually reachable at those relative
-// paths - true for this repo (or its GitHub Pages copy), false for a single
-// pasted-in file such as an AI-authored chat artifact. This script flattens
-// the same source files (no logic changes, just import/export stripped and
-// concatenated in dependency order) into whichever shape the target host
-// needs:
+// Bundles src/molscene/*.js (and, for --mode=standalone/shell, vendor/three)
+// into dependency-free output. Exists because the live demo (demo/) loads
+// the engine as ~19 separate ES modules via a relative import graph, which
+// only works when all of those files are actually reachable at those
+// relative paths - true for this repo (or its GitHub Pages copy), false for
+// a single pasted-in file such as an AI-authored chat artifact. This script
+// flattens the same source files (no logic changes, just import/export
+// stripped and concatenated in dependency order) into whichever shape the
+// target host needs:
 //
 //   --mode=module     one ES module, keeps `import * as THREE from 'three'`.
 //                      For hosts that already provide three.js as a package
 //                      (e.g. claude.ai's React/HTML artifacts, which have it
 //                      preinstalled) - just import { createViewer } from it.
 //
-//   --mode=standalone one full HTML document, three.js inlined as a plain
-//                      global script (no import maps, no network requests
-//                      at all). For strict-CSP sandboxes that block loading
-//                      *any* external host, or any static file host/email/
-//                      slide you want to drop a working viewer into.
+//   --mode=standalone one full HTML document, everything inlined (three.js
+//                      as a plain global script, the engine, the wiring,
+//                      and one specific molecule's text) - zero network
+//                      requests, zero other files. For strict-CSP sandboxes
+//                      that block loading *any* external host, or any
+//                      static file host/email/slide you want to drop a
+//                      working viewer into as a single self-contained file.
 //                      Reads a .molscene file (path given as a positional
-//                      arg, defaults to examples/h2.molscene) into a clearly
-//                      delimited <script type="text/plain"> block so it can
-//                      be swapped for a different molecule by editing only
-//                      that block.
+//                      arg, defaults to examples/h2.molscene).
 //
-//   --mode=shell       same as standalone, but with a literal
-//                      "{{MOLSCENE_SOURCE}}" placeholder instead of a real
-//                      molecule, for a caller that splices its own molscene
-//                      text in at runtime (e.g. userscript/molscene-render.
-//                      user.js, which fetches this once and reuses it for
-//                      every code block it finds on the page).
+//   --mode=shell       an HTML + external .js pair (not inlined - see why
+//                      below) that reads its molscene text from the URL
+//                      fragment (location.hash) instead of having one baked
+//                      in, for a caller that navigates an iframe's `src` to
+//                      it with a different molecule each time:
+//                      userscript/molscene-render.user.js and extension/
+//                      both do this by setting
+//                      `iframe.src = SHELL_URL + '#' + encodeURIComponent(text)`.
+//                      Takes an output directory (default "dist") and
+//                      writes <dir>/molscene-shell.html and
+//                      <dir>/molscene-shell.js directly (two files, so no
+//                      single stdout stream to redirect).
+//
+//                      Why not --mode=standalone's srcdoc+inline-script
+//                      shape, just with a placeholder text block spliced in
+//                      at runtime (what this used to do): an
+//                      `iframe.srcdoc` document inherits the *embedding
+//                      page's* Content-Security-Policy (browsers do this on
+//                      purpose, so srcdoc/data:/blob: can't be used to
+//                      dodge a page's CSP) - so on any chat site whose CSP
+//                      disallows inline scripts (Gemini does; likely others
+//                      too), the engine's inline <script> gets silently
+//                      blocked. A real cross-origin navigation
+//                      (`iframe.src = "https://..."` or
+//                      `"chrome-extension://..."`) does NOT inherit the
+//                      embedder's CSP - it gets its own origin's (GitHub
+//                      Pages sets none; a packaged extension page gets the
+//                      extension's own baseline CSP instead) - which is why
+//                      this mode exists as a real navigation target rather
+//                      than a string spliced into srcdoc. That baseline
+//                      extension CSP still disallows *inline* scripts
+//                      unconditionally (Chrome enforces this platform-wide,
+//                      it can't be loosened via manifest.json), which is
+//                      why the engine has to be an external .js file here
+//                      specifically, unlike --mode=standalone.
 //
 // Usage:
 //   node scripts/build-artifact.mjs --mode=module > dist/molscene-engine.module.js
 //   node scripts/build-artifact.mjs --mode=standalone examples/glucose.molscene > out.html
-//   node scripts/build-artifact.mjs --mode=shell > dist/molscene-shell.html
+//   node scripts/build-artifact.mjs --mode=shell dist
 //
-// Regenerate dist/ after any change under src/molscene/ or vendor/three/:
+// Regenerate dist/ (and extension/dist/, its copy) after any change under
+// src/molscene/ or vendor/three/:
 //   npm run build:artifacts
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -58,8 +87,6 @@ const FILES = [
   'camera-controls.js', 'electron-motion.js', 'reaction-scene.js',
   'reaction-motion.js', 'viewer.js'
 ];
-
-const SHELL_PLACEHOLDER = '{{MOLSCENE_SOURCE}}';
 
 const IMPORT_LINE = /^import\s.+;\s*$/;
 const BARE_EXPORT_LINE = /^export\s*\{[^}]*\}(\s*from\s*'[^']+')?;\s*$/;
@@ -101,16 +128,7 @@ function buildModuleBundle(){
     "\n\nexport { createViewer, ROLE_LABELS, resolveMolscene };\n";
 }
 
-function buildStandaloneHtml(molsceneText, molsceneFileLabel){
-  const engine = bundleEngine();
-  const threeGlobal = bundleThreeAsGlobal();
-  return '<!doctype html>\n' +
-'<html lang="es">\n' +
-'<head>\n' +
-'<meta charset="utf-8">\n' +
-'<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
-'<title>molscene — visor autónomo</title>\n' +
-'<style>\n' +
+const PAGE_STYLE =
 '  :root { color-scheme: dark; }\n' +
 '  html, body { margin: 0; height: 100%; background: #070a10; font-family: system-ui, sans-serif; }\n' +
 '  #stage { position: fixed; inset: 0; }\n' +
@@ -124,10 +142,9 @@ function buildStandaloneHtml(molsceneText, molsceneFileLabel){
 '  #legend .sw { width: 9px; height: 9px; border-radius: 50%; flex: none; }\n' +
 '  #err { display: none; position: fixed; bottom: 12px; left: 12px; right: 12px; background: #401515; color: #ffb4b4; font-size: 12px; padding: 8px 10px; border-radius: 6px; white-space: pre-wrap; }\n' +
 '  #reaction { display: none; margin-top: 8px; }\n' +
-'  #reaction input { width: 100%; }\n' +
-'</style>\n' +
-'</head>\n' +
-'<body>\n' +
+'  #reaction input { width: 100%; }\n';
+
+const PAGE_BODY =
 '<div id="stage"></div>\n' +
 '<div id="panel">\n' +
 '  <h1 id="name">molscene</h1>\n' +
@@ -147,20 +164,14 @@ function buildStandaloneHtml(molsceneText, molsceneFileLabel){
 '  </div>\n' +
 '  <div id="legend"></div>\n' +
 '</div>\n' +
-'<div id="err"></div>\n' +
-'<!-- Edit ONLY this block to change the molecule/reaction - it is plain\n' +
-'     molscene text, see docs/molscene-spec.md. Everything below it is the\n' +
-'     bundled engine + three.js and should not need to change. -->\n' +
-'<script id="molscene-source" type="text/plain">\n' +
-molsceneText +
-'\n</script>\n' +
-'<script>\n' +
-threeGlobal +
-'\n</script>\n' +
-'<script>\n' +
-'(function(){\n' +
-'const THREE = window.THREE;\n' +
-engine + '\n' +
+'<div id="err"></div>\n';
+
+// `readTextExpr` is a JS expression (as source text) evaluating to the
+// molscene source the page should render - differs between standalone
+// (a literal string baked in at build time) and shell (read from the URL
+// fragment at load time).
+function buildWiringJs(readTextExpr){
+  return 'const THREE = window.THREE;\n' +
 'const stage = document.getElementById("stage");\n' +
 'const errBox = document.getElementById("err");\n' +
 'const nameEl = document.getElementById("name");\n' +
@@ -178,7 +189,7 @@ engine + '\n' +
 '  });\n' +
 '}\n' +
 'function reactionLabel(t){ if (t <= 0) return "reactivos"; if (t >= 1) return "productos"; return t < 0.5 ? "acercándose…" : "productos"; }\n' +
-'const text = document.getElementById("molscene-source").textContent;\n' +
+'const text = ' + readTextExpr + ';\n' +
 'const resolved = viewer.load(text);\n' +
 'if (resolved.errors.length){\n' +
 '  errBox.style.display = "block";\n' +
@@ -209,11 +220,59 @@ engine + '\n' +
 '  const t = viewer.getReactionProgress();\n' +
 '  slider.value = String(t);\n' +
 '  renderLegend(viewer.getLegend());\n' +
-'}, 150);\n' +
-'})();\n' +
-'</script>\n' +
+'}, 150);\n';
+}
+
+function buildStandaloneHtml(molsceneText){
+  const engine = bundleEngine();
+  const threeGlobal = bundleThreeAsGlobal();
+  const wiring = buildWiringJs('document.getElementById("molscene-source").textContent');
+  return '<!doctype html>\n' +
+'<html lang="es">\n' +
+'<head>\n' +
+'<meta charset="utf-8">\n' +
+'<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+'<title>molscene — visor autónomo</title>\n' +
+'<style>\n' + PAGE_STYLE + '</style>\n' +
+'</head>\n' +
+'<body>\n' +
+PAGE_BODY +
+'<!-- Edit ONLY this block to change the molecule/reaction - it is plain\n' +
+'     molscene text, see docs/molscene-spec.md. Everything below it is the\n' +
+'     bundled engine + three.js and should not need to change. -->\n' +
+'<script id="molscene-source" type="text/plain">\n' +
+molsceneText +
+'\n</script>\n' +
+'<script>\n' + threeGlobal + '\n</script>\n' +
+'<script>\n(function(){\n' + engine + '\n' + wiring + '})();\n</script>\n' +
 '</body>\n' +
 '</html>\n';
+}
+
+// See the big comment at the top of this file for why this is HTML+external
+// .js instead of --mode=standalone's all-inline shape.
+function buildShellFiles(){
+  const engine = bundleEngine();
+  const threeGlobal = bundleThreeAsGlobal();
+  const wiring = buildWiringJs('decodeURIComponent(location.hash.slice(1) || "")');
+  const html = '<!doctype html>\n' +
+'<html lang="es">\n' +
+'<head>\n' +
+'<meta charset="utf-8">\n' +
+'<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+'<title>molscene</title>\n' +
+'<style>\n' + PAGE_STYLE + '</style>\n' +
+'</head>\n' +
+'<body>\n' +
+PAGE_BODY +
+'<script src="molscene-shell.js"></script>\n' +
+'</body>\n' +
+'</html>\n';
+  const js = '// AUTO-GENERATED by scripts/build-artifact.mjs --mode=shell - do not edit by hand.\n' +
+'// Reads its molscene text from the URL fragment - the caller navigates\n' +
+'// here with `location.href = ".../molscene-shell.html#" + encodeURIComponent(text)`.\n' +
+'(function(){\n' + threeGlobal + '\n' + engine + '\n' + wiring + '})();\n';
+  return { html, js };
 }
 
 function main(){
@@ -227,13 +286,12 @@ function main(){
   } else if (mode === 'standalone'){
     const molPath = positional[0] || join(ROOT, 'examples', 'h2.molscene');
     const molsceneText = readFileSync(molPath, 'utf8');
-    process.stdout.write(buildStandaloneHtml(molsceneText, molPath));
+    process.stdout.write(buildStandaloneHtml(molsceneText));
   } else if (mode === 'shell'){
-    // Same standalone document, but with a literal placeholder instead of
-    // real molscene text - for callers that splice their own text in at
-    // runtime (see userscript/molscene-render.user.js) instead of baking
-    // one molecule in at build time.
-    process.stdout.write(buildStandaloneHtml(SHELL_PLACEHOLDER, '(shell - runtime placeholder)'));
+    const outDir = positional[0] || join(ROOT, 'dist');
+    const { html, js } = buildShellFiles();
+    writeFileSync(join(outDir, 'molscene-shell.html'), html);
+    writeFileSync(join(outDir, 'molscene-shell.js'), js);
   } else {
     console.error('Unknown --mode="' + mode + '" (expected module|standalone|shell)');
     process.exit(1);

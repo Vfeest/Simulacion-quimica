@@ -6,31 +6,30 @@
 // default, with a toolbar to copy it or flip back to see it.
 //
 // Why a second, separate implementation instead of sharing one file with
-// the userscript: the two environments fetch the engine differently
-// (GM_xmlhttpRequest against GitHub Pages vs. a resource bundled into this
-// extension, see dist/molscene-shell.html and manifest.json's
-// web_accessible_resources) and that's the one part not worth abstracting
-// over for ~100 lines of code. Detection logic (looksLikeMolscene) is
-// intentionally identical to the userscript's - keep them in sync if it
-// changes.
+// the userscript: the two environments locate the engine's shell page
+// differently (a real GitHub Pages URL vs. chrome.runtime.getURL() for a
+// resource bundled into this extension, see dist/molscene-shell.html and
+// manifest.json's web_accessible_resources) and that's the one part not
+// worth abstracting over for ~100 lines of code. Detection logic
+// (looksLikeMolscene) and the iframe-navigation approach are intentionally
+// identical to the userscript's - keep them in sync if either changes.
+//
+// The iframe is navigated to a real URL (`iframe.src = SHELL_URL + '#' +
+// encodeURIComponent(text)`), never given `srcdoc` with the engine spliced
+// in as a string: an `iframe.srcdoc` document inherits the *host page's*
+// Content-Security-Policy (browsers do this on purpose, so srcdoc can't be
+// used to dodge a page's CSP), and several chat sites' CSP blocks inline
+// scripts outright - which used to make this silently render nothing.
+// dist/molscene-shell.html is a real chrome-extension:// navigation
+// target, unaffected by the host page's CSP; see the comment above
+// buildShellFiles() in scripts/build-artifact.mjs for the rest of that
+// story (and why the engine there is an external .js file, not inlined).
 
 (function () {
   'use strict';
 
   const SHELL_URL = chrome.runtime.getURL('dist/molscene-shell.html');
-  const PLACEHOLDER = '{{MOLSCENE_SOURCE}}';
   const DEBOUNCE_MS = 500;
-
-  let shellPromise = null;
-  function loadShell() {
-    if (!shellPromise) {
-      shellPromise = fetch(SHELL_URL).then(function (res) {
-        if (!res.ok) throw new Error('molscene shell: HTTP ' + res.status);
-        return res.text();
-      });
-    }
-    return shellPromise;
-  }
 
   // Same content-sniff as the userscript: molscene's own grammar always
   // starts with one of these two keywords, so this works regardless of how
@@ -98,9 +97,6 @@
 
     const frameWrap = document.createElement('div');
     frameWrap.className = 'molscene-frame-wrap';
-    const iframe = document.createElement('iframe');
-    iframe.setAttribute('sandbox', 'allow-scripts');
-    frameWrap.appendChild(iframe);
     card.appendChild(frameWrap);
 
     const raw = document.createElement('div');
@@ -111,27 +107,28 @@
     card.appendChild(raw);
 
     host.insertAdjacentElement('afterend', card);
-    return { card, iframe, nameEl, rawPre };
+    return { card, frameWrap, nameEl, rawPre };
   }
 
-  async function renderInto(codeEl) {
+  function renderInto(codeEl) {
     const text = codeEl.textContent.trim();
     if (!text || lastText.get(codeEl) === text) return;
     lastText.set(codeEl, text);
-
-    let shell;
-    try { shell = await loadShell(); }
-    catch (e) { console.error('[molscene]', e); return; }
-
-    const safeText = text.split('</script').join('<\\/script');
-    const html = shell.split(PLACEHOLDER).join(safeText);
 
     let refs = cardOf.get(codeEl);
     if (!refs) { refs = buildCard(codeEl); cardOf.set(codeEl, refs); }
 
     refs.nameEl.textContent = moleculeName(text);
     refs.rawPre.textContent = text;
-    refs.iframe.srcdoc = html;
+
+    // A fresh iframe per render (instead of reassigning .src on the same
+    // one) sidesteps any ambiguity between a full navigation and an
+    // in-document fragment update - guarantees the engine actually
+    // reinitializes for the new molecule every time.
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('sandbox', 'allow-scripts');
+    iframe.src = SHELL_URL + '#' + encodeURIComponent(text);
+    refs.frameWrap.replaceChildren(iframe);
   }
 
   let timer = null;

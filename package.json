@@ -4,6 +4,6 @@
   "description": "molscene: motor de visualización molecular 3D + lenguaje declarativo para IA",
   "type": "module",
   "scripts": {
-    "build:artifacts": "node scripts/build-artifact.mjs --mode=module > dist/molscene-engine.module.js && node scripts/build-artifact.mjs --mode=standalone examples/h2.molscene > dist/molscene-standalone-template.html && node scripts/build-artifact.mjs --mode=shell > dist/molscene-shell.html && cp dist/molscene-shell.html extension/dist/molscene-shell.html"
+    "build:artifacts": "node scripts/build-artifact.mjs --mode=module > dist/molscene-engine.module.js && node scripts/build-artifact.mjs --mode=standalone examples/h2.molscene > dist/molscene-standalone-template.html && node scripts/build-artifact.mjs --mode=shell dist && cp dist/molscene-shell.html dist/molscene-shell.js extension/dist/"
   }
 }
