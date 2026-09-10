@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "molscene inline renderer",
+  "version": "1.0.0",
+  "description": "Reemplaza los bloques de código molscene (moléculas, orbitales, reacciones) por la simulación 3D, en cualquier chat de IA.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["dist/molscene-shell.html"],
+      "matches": [
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*"
+      ]
+    }
+  ]
+}

@@ -22,6 +22,11 @@ Demo en vivo: **https://vfeest.github.io/Simulacion-quimica/demo/index.html**
   detecta un bloque de código molscene en cualquier chat de IA
   (claude.ai, ChatGPT, Gemini...) y renderiza la molécula justo debajo,
   sin que la IA necesite saber nada de este proyecto.
+- **`extension/`** — lo mismo que el userscript, pero como extensión
+  nativa de Chrome (Manifest V3, motor empaquetado adentro, sin depender
+  de Tampermonkey ni de red en tiempo de render): oculta el bloque de
+  código y lo reemplaza por el visor, con botón para copiar el texto
+  original o volver a verlo.
 - **`examples/*.molscene`** — moléculas de ejemplo (H₂, N₂, H₂O, NH₃, CH₄,
   CO₂, HCl, NaCl, cúmulo metálico, puente de hidrógeno, glucosa con
   descripción, y dos reacciones animadas: H₂ + Cl₂ → 2 HCl y

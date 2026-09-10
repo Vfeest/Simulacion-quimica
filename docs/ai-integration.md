@@ -2,16 +2,17 @@
 
 Este documento es para una IA (o quien la esté configurando) que quiere que
 sus respuestas incluyan visualizaciones moleculares con este motor, en vez
-de solo texto. Hay tres caminos, según dónde corra el artifact/página que
-la IA genera - **elegí uno según el sandbox del host**, no son
+de solo texto. Hay cuatro caminos, según dónde corra el artifact/página
+que la IA genera - **elegí uno según el sandbox del host**, no son
 intercambiables:
 
-| | Camino A — motor hospedado | Camino B — bundle autocontenido | Camino C — userscript |
-|---|---|---|---|
-| Cuándo usarlo | El host puede cargar scripts desde `vfeest.github.io` (una web propia, un IDE, la mayoría de herramientas de IA para código) | El host bloquea toda petición de red saliente salvo a orígenes preaprobados (p. ej. los artifacts de claude.ai) | Querés que funcione en **cualquier** chat de IA (claude.ai, ChatGPT, Gemini...) sin que esa IA arme nada especial - solo que escriba el código molscene |
-| Qué se pega | 5 líneas | El motor completo, una vez | Nada — se instala una vez en el navegador |
-| Se actualiza solo con nuevos pushes al repo | Sí | No — hay que regenerar el bundle | Sí (el shell se descarga en cada carga de página) |
-| Requiere que la IA sepa de este proyecto | Sí | Sí | No — alcanza con que escriba un bloque de código molscene, algo que ya hace por sí sola si se le pide "mostrame esto en molscene" |
+| | Camino A — motor hospedado | Camino B — bundle autocontenido | Camino C — userscript | Camino D — extensión de Chrome |
+|---|---|---|---|---|
+| Cuándo usarlo | El host puede cargar scripts desde `vfeest.github.io` (una web propia, un IDE, la mayoría de herramientas de IA para código) | El host bloquea toda petición de red saliente salvo a orígenes preaprobados (p. ej. los artifacts de claude.ai) | Querés que funcione en **cualquier** chat de IA (claude.ai, ChatGPT, Gemini...) sin que esa IA arme nada especial - solo que escriba el código molscene | Lo mismo que C, pero sin depender de tener Tampermonkey instalado, y sin pedirle nada a GitHub Pages en el momento de renderizar |
+| Qué se pega | 5 líneas | El motor completo, una vez | Nada — se instala una vez en el navegador | Nada — se carga una vez como extensión |
+| Se actualiza solo con nuevos pushes al repo | Sí | No — hay que regenerar el bundle | Sí (el shell se descarga en cada carga de página) | No — el shell viaja empaquetado adentro de la extensión |
+| Requiere que la IA sepa de este proyecto | Sí | Sí | No — alcanza con que escriba un bloque de código molscene, algo que ya hace por sí sola si se le pide "mostrame esto en molscene" | No, ídem C |
+| Qué hace con el texto original | Lo que arme la IA | Lo que arme la IA | Deja el bloque de código como está y agrega el visor debajo | Oculta el bloque de código y lo reemplaza por el visor (con botón para copiarlo o volver a verlo) |
 
 ## Camino A: motor hospedado (GitHub Pages)
 
@@ -149,11 +150,49 @@ reemplaza por el texto de cada bloque que encuentra. Se descarga una sola
 vez por carga de página (vía `GM_xmlhttpRequest`, que no está sujeto al
 CSP de la página) y se reutiliza para todos los bloques.
 
-## Qué NO hace ninguno de los tres caminos
+## Camino D: extensión nativa de Chrome (igual que C, pero sin Tampermonkey ni red en runtime)
+
+Mismo detector que el Camino C (`looksLikeMolscene`: primera línea con
+`molecule`/`reaction`, más `atom ...:` o `reactants` en algún lado) y el
+mismo `MutationObserver` con debounce, pero empaquetado como una extensión
+de Chrome (Manifest V3) en `extension/`, con dos diferencias de diseño
+deliberadas:
+
+- **El shell viaja adentro de la extensión** (`extension/dist/molscene-shell.html`,
+  una copia de `dist/molscene-shell.html` — mismo build, ver
+  `npm run build:artifacts`) en vez de bajarse de GitHub Pages en cada
+  página. Nada de `GM_xmlhttpRequest` ni permisos de red: el content
+  script lo carga con `fetch(chrome.runtime.getURL('dist/molscene-shell.html'))`,
+  un recurso local de la propia extensión. Funciona sin conexión y sin
+  pedirle permiso de red a nadie; el costo es que un cambio en
+  `src/molscene/` no se ve hasta recargar la extensión (`chrome://extensions`
+  → ícono de recargar) con un `dist/` regenerado.
+- **Reemplaza el bloque en vez de agregar algo al lado**: oculta el `<pre>`
+  original (`display:none`, nunca se borra del DOM) y pone en su lugar una
+  tarjeta con el visor, un botón **Copiar código** (usa
+  `navigator.clipboard.writeText` con el texto que se detectó, no lo que
+  haya en pantalla) y un botón **Ver código** que alterna entre el visor y
+  el texto crudo — nunca se pierde el original, solo queda tapado por
+  default.
+
+**Instalación** (no está publicada en la Chrome Web Store — se carga sin
+empaquetar, igual que cualquier extensión en desarrollo):
+
+1. Cloná o descargá este repo.
+2. `chrome://extensions` → activar **Modo de desarrollador** (arriba a la
+   derecha).
+3. **Cargar descomprimida** → elegir la carpeta `extension/`.
+
+Ya viene con permisos de contenido (`content_scripts`) para claude.ai,
+ChatGPT y Gemini — agregar otro sitio es una línea en `manifest.json`
+(`matches`).
+
+## Qué NO hace ninguno de los cuatro caminos
 
 Ninguno mantiene el artifact sincronizado con cambios futuros del motor
 por sí solo, salvo A y C (ambos apuntan siempre a la última versión en
-`main`/GitHub Pages). El Camino B congela una copia en el momento en que
-se generó el bundle — si `src/molscene/` cambia, hay que correr
-`npm run build:artifacts` de nuevo y volver a subir el archivo actualizado
-al Project knowledge.
+`main`/GitHub Pages). Los caminos B y D congelan una copia en el momento
+en que se generó el bundle — si `src/molscene/` cambia, hay que correr
+`npm run build:artifacts` de nuevo (regenera `dist/` **y**
+`extension/dist/` a la vez) y, para B, volver a subir el archivo
+actualizado al Project knowledge; para D, recargar la extensión.
